@@ -307,6 +307,7 @@ function Vendor_name() {
                     <th style={{ whiteSpace: "nowrap" }}>Brand</th>
                     <th style={{ whiteSpace: "nowrap" }}>Make Model</th>
                     <th style={{ whiteSpace: "nowrap" }}>Repair Charges</th>
+                    <th style={{ whiteSpace: "nowrap" }}>Servic Charges</th>
                     
                     <th>Total</th>
                     <th className="border-end" style={{ whiteSpace: "nowrap" }}>
@@ -368,6 +369,9 @@ function Vendor_name() {
                         </td>
                         <td className="align-middle">
                           {invoice.repairCharges || "--"}
+                        </td>
+                        <td className="align-middle">
+                          {invoice.serviceCharges || "--"}
                         </td>
                       
                         <td className="align-middle">

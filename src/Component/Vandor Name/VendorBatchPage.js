@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Table } from "react-bootstrap";
 import { toast } from "react-toastify";
@@ -64,7 +63,9 @@ const VendorBatchPage = () => {
 
       setInvoices((prev) => {
         const updated = [...prev];
-        const index = updated.findIndex(inv => inv.aA_Number === edited.aA_Number);
+        const index = updated.findIndex(
+          (inv) => inv.aA_Number === edited.aA_Number
+        );
         if (index !== -1) {
           updated[index] = { ...updated[index], ...edited };
         }
@@ -74,7 +75,7 @@ const VendorBatchPage = () => {
       sessionStorage.removeItem("editedInvoice");
     }
   }, []);
-  console.log(invoices, "invocicicoffdifs")
+  console.log(invoices, "invocicicoffdifs");
 
   // Constants
   const itemsPerPage = 10; // Updated to 10 items per page
@@ -103,7 +104,11 @@ const VendorBatchPage = () => {
     const amount = parseFloat(cleanedRepair);
     return total + (isNaN(amount) ? 0 : amount);
   }, 0);
-
+const totalServiceCharges = currentInvoices.reduce((total, invoice) => {
+  const cleanedAmount = invoice.serviceCharges?.toString().replace(/,/g, "");
+  const amount = parseFloat(cleanedAmount);
+  return total + (isNaN(amount) ? 0 : amount);
+}, 0);
   const grossAmount = currentInvoices.reduce((total, invoice) => {
     const cleanedAmount = invoice.total?.toString().replace(/,/g, "");
     const amount = parseFloat(cleanedAmount);
@@ -178,7 +183,7 @@ const VendorBatchPage = () => {
       if (
         normalize(matchedData.serviceType) !== normalize(invoice.serviceType) ||
         normalize(matchedData.repairCharges) !==
-        normalize(invoice.repairCharges) ||
+          normalize(invoice.repairCharges) ||
         normalize(matchedData.total) !== normalize(invoice.total)
       ) {
         return "row-yellow";
@@ -217,7 +222,8 @@ const VendorBatchPage = () => {
       });
     }
     if (
-      normalize(matchedData.serviceCharges) !== normalize(invoice.serviceCharges)
+      normalize(matchedData.serviceCharges) !==
+      normalize(invoice.serviceCharges)
     ) {
       differences.push({
         field: "Service Charges",
@@ -326,129 +332,138 @@ const VendorBatchPage = () => {
     updatedInvoices[index][field] = value;
     setInvoices(updatedInvoices);
   };
-const handleSubmit = async () => {
-  try {
-    const selected = invoices.filter((inv) => inv.isChecked);
+  const handleSubmit = async () => {
+    try {
+      const selected = invoices.filter((inv) => inv.isChecked);
 
-    if (selected.length === 0) {
-      alert("Please select at least one invoice.");
-      return;
-    }
-
-    const newErrors = {
-      invoiceNo: !invoiceNo,
-      invoiceDate: !invoiceDate,
-      invoiceAmount: !invoiceAmount,
-      caseCount: !caseCount,
-    };
-    setFieldErrors(newErrors);
-
-    if (Object.values(newErrors).some(Boolean)) {
-      alert("Please fill all required invoice fields.");
-      return;
-    }
-
-    if (uploadedFile && parseFloat(invoiceAmount) !== parseFloat(finalAmount)) {
-      setAmountError("Invoice Amount and Final Amount do not match.");
-      return;
-    }
-
-    if (uploadedFile && parseInt(caseCount) !== selectedAAno.length) {
-      alert("Case Count does not match the number of selected services.");
-      return;
-    }
-
-    let hasMismatch = false;
-
-    for (const invoice of selected) {
-      const matchedData = apiData.find(item => item.aA_Number === invoice.aA_Number);
-
-      if (!matchedData) {
-        alert(
-          `AA Number ${invoice.aA_Number} not found in reference data.\nPlease delete the row or check the source.`
-        );
-        return; // Stop submission if any AA number is missing
+      if (selected.length === 0) {
+        alert("Please select at least one invoice.");
+        return;
       }
 
-      const normalize = (val) => (val ? val.toString().trim() : "").toLowerCase();
+      const newErrors = {
+        invoiceNo: !invoiceNo,
+        invoiceDate: !invoiceDate,
+        invoiceAmount: !invoiceAmount,
+        caseCount: !caseCount,
+      };
+      setFieldErrors(newErrors);
+
+      // if (Object.values(newErrors).some(Boolean)) {
+      //   alert("Please fill all required invoice fields.");
+      //   return;
+      // }
 
       if (
-        normalize(matchedData.serviceType) !== normalize(invoice.serviceType) ||
-        normalize(matchedData.repairCharges) !== normalize(invoice.repairCharges) ||
-        normalize(matchedData.serviceCharges) !== normalize(invoice.serviceCharges) ||
-        normalize(matchedData.total) !== normalize(invoice.total)
+        uploadedFile &&
+        parseFloat(invoiceAmount) !== parseFloat(finalAmount)
       ) {
-        hasMismatch = true;
+        setAmountError("Invoice Amount and Final Amount do not match.");
+        return;
       }
-    }
 
-    if (hasMismatch) {
-      const confirmProceed = window.confirm(
-        "Warning: Some invoice fields do not match the original data.\nDo you want to proceed anyway?"
+      if (uploadedFile && parseInt(caseCount) !== selectedAAno.length) {
+        alert("Case Count does not match the number of selected services.");
+        return;
+      }
+
+      let hasMismatch = false;
+
+      for (const invoice of selected) {
+        const matchedData = apiData.find(
+          (item) => item.aA_Number === invoice.aA_Number
+        );
+
+        if (!matchedData) {
+          alert(
+            `AA Number ${invoice.aA_Number} not found in reference data.\nPlease delete the row or check the source.`
+          );
+          return; // Stop submission if any AA number is missing
+        }
+
+        const normalize = (val) =>
+          (val ? val.toString().trim() : "").toLowerCase();
+
+        if (
+          normalize(matchedData.serviceType) !==
+            normalize(invoice.serviceType) ||
+          normalize(matchedData.repairCharges) !==
+            normalize(invoice.repairCharges) ||
+          normalize(matchedData.serviceCharges) !==
+            normalize(invoice.serviceCharges) ||
+          normalize(matchedData.total) !== normalize(invoice.total)
+        ) {
+          hasMismatch = true;
+        }
+      }
+
+      if (hasMismatch) {
+        const confirmProceed = window.confirm(
+          "Warning: Some invoice fields do not match the original data.\nDo you want to proceed anyway?"
+        );
+        if (!confirmProceed) return;
+      }
+
+      // Prepare form data
+      const formData = new FormData();
+      const extract = (key) =>
+        selected.map((item) => item[key] || "").join(", ");
+
+      formData.append("AANo", extract("aA_Number"));
+      formData.append("IMEINo", extract("imeiNumber"));
+      formData.append("CreationDate", extract("creationDate"));
+      formData.append("ClosureDate", extract("closureDate"));
+      formData.append("CustomerName", extract("customerName"));
+      formData.append("VendorName", vendorName);
+      formData.append("finalAmount", finalAmount);
+      formData.append("TotalRepairCharges", totalRepairCharges.toFixed(2));
+      formData.append("ServiceType", extract("serviceType"));
+      formData.append("Brand", extract("brand"));
+      formData.append("MakeModel", extract("makeModel"));
+      formData.append("RepairCharges", extract("repairCharges"));
+      formData.append("ServiceCharges", extract("serviceCharges"));
+      formData.append("ChargesInclGST", extract("chargesIncGST") || "");
+      formData.append("Total", extract("total"));
+      formData.append("SellingPartner", extract("sellingPartner") || "");
+      formData.append(
+        "InvoiceStatus",
+        uploadedFile ? "Invoice Uploaded" : extract("InvoiceStatus")
       );
-      if (!confirmProceed) return;
+      formData.append("InvoiceNo", invoiceNo);
+      formData.append("InvoiceDate", invoiceDate);
+      formData.append("InvoiceAmount", invoiceAmount);
+      formData.append("CaseCount", caseCount);
+      formData.append("IsGSTApplied", isGSTApplied ? "true" : "false");
+
+      if (uploadedFile) {
+        formData.append("Invoice", uploadedFile, uploadedFile.name);
+      }
+
+      const response = await fetch(`${BASE_URL}/SaveApprovalBatchData`, {
+        method: "POST",
+        body: formData,
+      });
+
+      const result = await response.json();
+      console.log("API response:", result);
+
+      if (!response.ok) {
+        throw new Error("Error submitting batch");
+      }
+
+      alert("Batch submitted successfully.");
+
+      // Redirect
+      if (uploadedFile) {
+        navigate("/approval");
+      } else {
+        // navigate("/");
+      }
+    } catch (error) {
+      console.error("Submission failed:", error);
+      alert("Submission failed. Please check console for details.");
     }
-
-    // Prepare form data
-    const formData = new FormData();
-    const extract = (key) => selected.map((item) => item[key] || "").join(", ");
-
-    formData.append("AANo", extract("aA_Number"));
-    formData.append("IMEINo", extract("imeiNumber"));
-    formData.append("CreationDate", extract("creationDate"));
-    formData.append("ClosureDate", extract("closureDate"));
-    formData.append("CustomerName", extract("customerName"));
-    formData.append("VendorName", vendorName);
-    formData.append("finalAmount", finalAmount);
-    formData.append("TotalRepairCharges", totalRepairCharges.toFixed(2));
-    formData.append("ServiceType", extract("serviceType"));
-    formData.append("Brand", extract("brand"));
-    formData.append("MakeModel", extract("makeModel"));
-    formData.append("RepairCharges", extract("repairCharges"));
-    formData.append("ServiceCharges", extract("serviceCharges"));
-    formData.append("ChargesInclGST", extract("chargesIncGST") || "");
-    formData.append("Total", extract("total"));
-    formData.append("SellingPartner", extract("sellingPartner") || "");
-    formData.append(
-      "InvoiceStatus",
-      uploadedFile ? "Invoice Uploaded" : extract("InvoiceStatus")
-    );
-    formData.append("InvoiceNo", invoiceNo);
-    formData.append("InvoiceDate", invoiceDate);
-    formData.append("InvoiceAmount", invoiceAmount);
-    formData.append("CaseCount", caseCount);
-    formData.append("IsGSTApplied", isGSTApplied ? "true" : "false");
-
-    if (uploadedFile) {
-      formData.append("Invoice", uploadedFile, uploadedFile.name);
-    }
-
-    const response = await fetch(`${BASE_URL}/SaveApprovalBatchData`, {
-      method: "POST",
-      body: formData,
-    });
-
-    const result = await response.json();
-    console.log("API response:", result);
-
-    if (!response.ok) {
-      throw new Error("Error submitting batch");
-    }
-
-    alert("Batch submitted successfully.");
-
-    // Redirect
-    if (uploadedFile) {
-      navigate("/approval");
-    } else {
-      // navigate("/");
-    }
-
-  } catch (error) {
-    console.error("Submission failed:", error);
-    alert("Submission failed. Please check console for details.");
-  }
-};
+  };
 
   return (
     <div
@@ -541,20 +556,22 @@ const handleSubmit = async () => {
                 <tr className="text-dark fw-semibold table_th_border">
                   <th className="border-start">View</th>
                   <th className="border-start">Edit</th>
-                  <th>AA No</th>
-                  <th>IMEI No</th>
-                  <th>Creation Date</th>
-                  <th>Closure Date</th>
-                  <th>Customer Name</th>
-                  <th>Service Type</th>
-                  <th>Brand</th>
-                  <th>Make Model</th>
-                  <th>Repair Charges</th>
-                  <th>Service Charges</th>
-                  <th>Total</th>
-                  <th>Invoice Status</th>
-                  <th>Error Name</th>
-                  <th>Differences</th>
+                  <th style={{ whiteSpace: "nowrap" }}>AA No</th>
+
+                  <th style={{ whiteSpace: "nowrap" }}>IMEI No</th>
+
+                  <th style={{ whiteSpace: "nowrap" }}>Creation Date</th>
+                  <th style={{ whiteSpace: "nowrap" }}>Closure Date</th>
+                  <th style={{ whiteSpace: "nowrap" }}>Customer Name</th>
+                  <th style={{ whiteSpace: "nowrap" }}>Service Type</th>
+                  <th style={{ whiteSpace: "nowrap" }}>Brand</th>
+                  <th style={{ whiteSpace: "nowrap" }}>Make Model</th>
+                  <th style={{ whiteSpace: "nowrap" }}>Repair Charges</th>
+                  <th style={{ whiteSpace: "nowrap" }}>Service Charges</th>
+                  <th style={{ whiteSpace: "nowrap" }}>Total</th>
+                  <th style={{ whiteSpace: "nowrap" }}>Invoice Status</th>
+                  <th style={{ whiteSpace: "nowrap" }}>Error Name</th>
+                  <th style={{ whiteSpace: "nowrap" }}>Differences</th>
                   <th className="border-end">Action</th>
                 </tr>
               </thead>
@@ -763,6 +780,12 @@ const handleSubmit = async () => {
                 </div>
               </div>
               <div className="text-start batch_popup_amount">
+                <div className="fw-bold batch_gross">Total Service Charges</div>
+                <div className="batch_amount_to_fix">
+                  ₹ {totalServiceCharges.toFixed(2)}
+                </div>
+              </div>
+              <div className="text-start batch_popup_amount">
                 <div className="fw-bold batch_gross">Total Gross Amount</div>
                 <div className="batch_amount_to_fix">
                   ₹ {grossAmount.toFixed(2)}
@@ -821,8 +844,9 @@ const handleSubmit = async () => {
                   <label className="me-2 fw-semibold w-50">Case Count</label>
                   <input
                     type="text"
-                    className={`form-control border-dark ${uploadedFile && fieldErrors.caseCount ? "is-invalid" : ""
-                      }`}
+                    className={`form-control border-dark ${
+                      uploadedFile && fieldErrors.caseCount ? "is-invalid" : ""
+                    }`}
                     placeholder="Enter Case Count"
                     value={caseCount}
                     onChange={(e) => setCaseCount(e.target.value)}
@@ -841,8 +865,9 @@ const handleSubmit = async () => {
                   <label className="me-2 fw-semibold w-50">Invoice No</label>
                   <input
                     type="text"
-                    className={`form-control border-dark ${uploadedFile && fieldErrors.invoiceNo ? "is-invalid" : ""
-                      }`}
+                    className={`form-control border-dark ${
+                      uploadedFile && fieldErrors.invoiceNo ? "is-invalid" : ""
+                    }`}
                     placeholder="Enter Invoice No"
                     value={invoiceNo}
                     onChange={(e) => setInvoiceNo(e.target.value)}
@@ -861,10 +886,11 @@ const handleSubmit = async () => {
                   <label className="me-2 fw-semibold w-50">Invoice Date</label>
                   <input
                     type="date"
-                    className={`form-control border-dark ${uploadedFile && fieldErrors.invoiceDate
-                      ? "is-invalid"
-                      : ""
-                      }`}
+                    className={`form-control border-dark ${
+                      uploadedFile && fieldErrors.invoiceDate
+                        ? "is-invalid"
+                        : ""
+                    }`}
                     value={invoiceDate}
                     onChange={(e) => setInvoiceDate(e.target.value)}
                     max={new Date().toISOString().split("T")[0]}
@@ -885,10 +911,11 @@ const handleSubmit = async () => {
                   </label>
                   <input
                     type="text"
-                    className={`form-control border-dark ${uploadedFile && (fieldErrors.invoiceAmount || amountError)
-                      ? "is-invalid"
-                      : ""
-                      }`}
+                    className={`form-control border-dark ${
+                      uploadedFile && (fieldErrors.invoiceAmount || amountError)
+                        ? "is-invalid"
+                        : ""
+                    }`}
                     placeholder="Enter Invoice Amount"
                     value={invoiceAmount}
                     onChange={(e) => {

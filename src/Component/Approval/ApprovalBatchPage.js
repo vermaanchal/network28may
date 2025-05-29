@@ -1,12 +1,7 @@
+
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Button, Form, Table } from "react-bootstrap";
-import {
-  FaEye,
-  FaDownload,
-  FaTrash,
-  FaUpload,
-  FaEdit,
-} from "react-icons/fa";
+import { FaEye, FaDownload, FaTrash, FaUpload, FaEdit } from "react-icons/fa";
 import Papa from "papaparse";
 import { useNavigate, useLocation } from "react-router-dom";
 import { saveAs } from "file-saver";
@@ -16,7 +11,7 @@ const BASE_URL = "https://mintflix.live:8086/api/Auto";
 function ApprovalBatchPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const batchData = location.state?.batchData || null; // Get batchData from navigation state
+  const batchData = location.state?.batchData || null;
   const fileInputRef = useRef();
   const [invoices, setInvoices] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -37,7 +32,6 @@ function ApprovalBatchPage() {
     invoiceAmount: false,
     caseCount: false,
   });
-
   const itemsPerPage = 8;
   const totalPages = Math.ceil(invoices.length / itemsPerPage);
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -51,6 +45,13 @@ function ApprovalBatchPage() {
     return total + (isNaN(amount) ? 0 : amount);
   }, 0);
 
+  // Calculate total service charges
+  const totalServiceCharges = currentInvoices.reduce((total, invoice) => {
+    const cleanedAmount = invoice.serviceCharges?.toString().replace(/,/g, "");
+    const amount = parseFloat(cleanedAmount);
+    return total + (isNaN(amount) ? 0 : amount);
+  }, 0);
+
   const grossAmount = currentInvoices.reduce((total, invoice) => {
     const cleanedAmount = invoice.total?.toString().replace(/,/g, "");
     const amount = parseFloat(cleanedAmount);
@@ -60,6 +61,9 @@ function ApprovalBatchPage() {
   const finalAmount = isGSTApplied
     ? (grossAmount * 1.18).toFixed(2)
     : grossAmount.toFixed(2);
+  const gstAmount = isGSTApplied
+    ? (grossAmount * 0.18).toFixed(2)
+    : (0).toFixed(2);
 
   useEffect(() => {
     console.log("row data", batchData);
@@ -84,7 +88,9 @@ function ApprovalBatchPage() {
           fetch(`${BASE_URL}/GetGadgetCaseDetailsByAA?aaNumbers=${aaNo}`)
             .then((response) => {
               if (!response.ok) {
-                console.error(`HTTP error for aaNo ${aaNo}: ${response.status}`);
+                console.error(
+                  `HTTP error for aaNo ${aaNo}: ${response.status}`
+                );
                 return { status: false, aA_Number: aaNo, dataItems: [] };
               }
               return response.json();
@@ -137,6 +143,7 @@ function ApprovalBatchPage() {
       brand: splitData("brand")[i],
       makeModel: splitData("makeModel")[i],
       repairCharges: splitData("repairCharges")[i],
+      serviceCharges: splitData("serviceCharges")[i],
       chargesInclGST: splitData("chargesInclGST")[i],
       total: splitData("total")[i],
       invoiceStatus: batchData.invoiceStatus || "",
@@ -168,6 +175,8 @@ function ApprovalBatchPage() {
           normalize(dataItem.serviceType) !== normalize(invoice.serviceType) ||
           normalize(dataItem.repairCharges) !==
             normalize(invoice.repairCharges) ||
+          normalize(dataItem.serviceCharges) !==
+            normalize(invoice.serviceCharges) ||
           normalize(dataItem.total) !== normalize(invoice.total) ||
           normalize(dataItem.imeiNumber) !== normalize(invoice.imeiNumber) ||
           normalize(dataItem.sellingPartner) !==
@@ -215,11 +224,22 @@ function ApprovalBatchPage() {
         api: dataItem.sellingPartner || "-",
       });
     }
-    if (normalize(dataItem.repairCharges) !== normalize(invoice.repairCharges)) {
+    if (
+      normalize(dataItem.repairCharges) !== normalize(invoice.repairCharges)
+    ) {
       differences.push({
         field: "Repair Charges",
         table: invoice.repairCharges || "-",
         api: dataItem.repairCharges || "-",
+      });
+    }
+    if (
+      normalize(dataItem.serviceCharges) !== normalize(invoice.serviceCharges)
+    ) {
+      differences.push({
+        field: "Service Charges",
+        table: invoice.serviceCharges || "-",
+        api: dataItem.serviceCharges || "-",
       });
     }
     if (
@@ -312,6 +332,7 @@ function ApprovalBatchPage() {
       brand: invoice.brand || "",
       makeModel: invoice.makeModel || "",
       repairCharges: invoice.repairCharges || "",
+      serviceCharges: invoice.serviceCharges || "",
       chargesInclGST: invoice.chargesInclGST || "",
       total: invoice.total || "",
       comment: invoice.comment || "",
@@ -376,6 +397,7 @@ function ApprovalBatchPage() {
       formData.append("Brand", extract("brand"));
       formData.append("MakeModel", extract("makeModel"));
       formData.append("RepairCharges", extract("repairCharges"));
+      formData.append("ServiceCharges", extract("serviceCharges"));
       formData.append("Total", extract("total"));
       formData.append("SellingPartner", extract("sellingPartner"));
       formData.append(
@@ -494,6 +516,7 @@ function ApprovalBatchPage() {
                     <th style={{ whiteSpace: "nowrap" }}>Brand</th>
                     <th style={{ whiteSpace: "nowrap" }}>Make Model</th>
                     <th style={{ whiteSpace: "nowrap" }}>Repair Charges</th>
+                    <th style={{ whiteSpace: "nowrap" }}>Service Charges</th>
                     <th style={{ whiteSpace: "nowrap" }}>Total</th>
                     <th style={{ whiteSpace: "nowrap" }}>Invoice Status</th>
                     <th style={{ whiteSpace: "nowrap" }}>Mismatched Data</th>
@@ -514,7 +537,9 @@ function ApprovalBatchPage() {
                   {!loading &&
                     currentInvoices.map((invoice, index) => (
                       <tr
-                        key={invoice.aA_Number || `${invoice.aA_Number}-${index}`}
+                        key={
+                          invoice.aA_Number || `${invoice.aA_Number}-${index}`
+                        }
                         className={`text-center border-bottom network_td_item ${getRowClassName(
                           invoice
                         )}`}
@@ -566,9 +591,7 @@ function ApprovalBatchPage() {
                         <td className="align-middle">
                           {invoice.serviceType || "-"}
                         </td>
-                        <td className="align-middle">
-                          {invoice.brand || "-"}
-                        </td>
+                        <td className="align-middle">{invoice.brand || "-"}</td>
                         <td className="align-middle">
                           {invoice.makeModel || "-"}
                         </td>
@@ -576,8 +599,9 @@ function ApprovalBatchPage() {
                           {invoice.repairCharges || "-"}
                         </td>
                         <td className="align-middle">
-                          {invoice.total || "-"}
+                          {invoice.serviceCharges || "-"}
                         </td>
+                        <td className="align-middle">{invoice.total || "-"}</td>
                         <td className="align-middle">
                           <span
                             className="vendore_invoice_status px-3 py-1 rounded-pill"
@@ -606,8 +630,7 @@ function ApprovalBatchPage() {
                                   backgroundColor: "#fff",
                                   border: "1px solid #ddd",
                                   padding: "10px",
-                                  boxShadow:
-                                    "0px 4px 8px rgba(0, 0, 0, 0.1)",
+                                  boxShadow: "0px 4px 8px rgba(0, 0, 0, 0.1)",
                                   minWidth: "300px",
                                   whiteSpace: "nowrap",
                                 }}
@@ -651,15 +674,13 @@ function ApprovalBatchPage() {
             </div>
             <div className="d-flex justify-content-between align-items-center">
               <div
-                className="batch_popup_gross_ammount p-3 d-inline-block"
+                className="batch_popup_gross_ammount p-2 d-flex align-items-center"
                 style={{ backgroundColor: "#eef4ff", marginTop: "1rem" }}
               >
                 <span className="fw-semibold text-secondary me-2">
-                  Total no of selected Service:
+                  Total no of selected invoices:
                 </span>
-                <span className="fw-bold text-dark">
-                  {selectedAAno.length}
-                </span>
+                <span className="fw-bold text-dark">{selectedAAno.length}</span>
               </div>
               <div
                 className="batch_popup_gross_ammount"
@@ -675,18 +696,31 @@ function ApprovalBatchPage() {
                 </div>
                 <div className="text-start batch_popup_amount">
                   <div className="fw-bold batch_gross">
-                    Total Gross Amount
+                    Total Service Charges
                   </div>
+                  <div className="batch_amount_to_fix">
+                    ₹ {parseFloat(totalServiceCharges).toFixed(2)}
+                  </div>
+                </div>
+                <div className="text-start batch_popup_amount">
+                  <div className="fw-bold batch_gross">Total Gross Amount</div>
                   <div className="batch_amount_to_fix">
                     ₹ {grossAmount.toFixed(2)}
                   </div>
                 </div>
                 <div className="text-start batch_popup_amount">
-                  <div className="fw-bold batch_gross">Final Amount</div>
+                  <div className="fw-bold batch_gross">Total Amount</div>
                   <div className="batch_amount_to_fix">₹ {finalAmount}</div>
-                  <div className="batch_gross ms-3">
-                    Charges ({isGSTApplied ? "incl GST 18%" : "excl GST"})
+                  <div className="batch_gross ms-2">
+                    ({isGSTApplied ? "incl GST 18%" : "excl GST"})
                   </div>
+                </div>
+                <div className="mt-2 ms-2">
+                  <span className="fw-semibold text-secondary">
+                    {isGSTApplied
+                      ? `GST Amount Added: ₹${gstAmount}`
+                      : `Total GST Amount: ₹${gstAmount}`}
+                  </span>
                 </div>
               </div>
             </div>
@@ -699,9 +733,9 @@ function ApprovalBatchPage() {
                   <input
                     type="radio"
                     name="kcApplication"
-                    id="kcApplicationYes"
+                    id="yes"
                     value="Yes"
-                    checked={isGSTApplied === true}
+                    checked={isGSTApplied}
                     onChange={() => setIsGSTApplied(true)}
                   />
                   <span className="regestration_applied_yes">Yes</span>
@@ -711,9 +745,9 @@ function ApprovalBatchPage() {
                   <input
                     type="radio"
                     name="kcApplication"
-                    id="kcApplicationNo"
+                    id="No"
                     value="No"
-                    checked={isGSTApplied === false}
+                    checked={!isGSTApplied}
                     onChange={() => setIsGSTApplied(false)}
                   />
                   <span className="regestration_applied_yes">No</span>
@@ -721,12 +755,10 @@ function ApprovalBatchPage() {
               </div>
             </div>
             <div>
-              <form className="mt-4 invoice_form">
+              <form className="mt-4">
                 <div className="row align-items-center">
                   <div className="col-md-4 align-items-center mb-3">
-                    <label className="me-2 fw-semibold w-50">
-                      Case Count
-                    </label>
+                    <label className="me-2 fw-semibold w-50">Case Count</label>
                     <input
                       type="text"
                       className={`form-control border-dark ${
@@ -734,7 +766,7 @@ function ApprovalBatchPage() {
                           ? "is-invalid"
                           : ""
                       }`}
-                      placeholder="Enter Case Count"
+                      placeholder="Case Count"
                       value={caseCount}
                       onChange={(e) => setCaseCount(e.target.value)}
                     />
@@ -748,9 +780,7 @@ function ApprovalBatchPage() {
                     )}
                   </div>
                   <div className="col-md-4 align-items-center mb-3">
-                    <label className="me-2 fw-semibold w-50">
-                      Invoice No
-                    </label>
+                    <label className="me-2 fw-semibold w-50">Invoice No</label>
                     <input
                       type="text"
                       className={`form-control border-dark ${
@@ -758,7 +788,7 @@ function ApprovalBatchPage() {
                           ? "is-invalid"
                           : ""
                       }`}
-                      placeholder="Enter Invoice No"
+                      placeholder="Invoice No"
                       value={invoiceNo}
                       onChange={(e) => setInvoiceNo(e.target.value)}
                     />
@@ -807,7 +837,7 @@ function ApprovalBatchPage() {
                           ? "is-invalid"
                           : ""
                       }`}
-                      placeholder="Enter Invoice Amount"
+                      placeholder="Enter Amount"
                       value={invoiceAmount}
                       onChange={(e) => {
                         const enteredAmount = e.target.value;
@@ -869,14 +899,13 @@ function ApprovalBatchPage() {
                 style={{
                   backgroundColor: "#8000d7",
                   border: "none",
-                  padding: "10px 50px",
-                  borderRadius: "8px",
+                  padding: "10px 16px",
                   fontWeight: "500",
                   fontSize: "16px",
                   color: "white",
                 }}
               >
-                <span className="ms-2">Submit</span>
+                <span className="">msubmit</span>
               </Button>
             </div>
           </div>

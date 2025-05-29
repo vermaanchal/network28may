@@ -1,107 +1,196 @@
-import React, { useState, useRef, useEffect } from "react";
-import Header from "../Header/header";
-import { IoFilterSharp } from "react-icons/io5";
-import { FaFilePdf } from "react-icons/fa";
+import React, { useState, useEffect, useRef } from "react";
+import { FaFilePdf, FaEye, FaSearch, FaRegCalendarAlt } from "react-icons/fa";
 import { Dropdown, Table, Button } from "react-bootstrap";
-import { FaChevronDown, FaEye } from "react-icons/fa";
-import { FaSearch } from "react-icons/fa";
+import { FaChevronDown } from "react-icons/fa";
+import {
+ GetPartialApprovedInvoiceData,
+  updateInvoiceStatusNetworkForApproved,
+} from "../../api/api";
+import { toast, ToastContainer } from "react-toastify";
+import pdfimage from "../images/pdf_downlaod.png";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { FaRegCalendarAlt } from "react-icons/fa";
-import { FaPlus } from "react-icons/fa";
-import { FaCirclePlus } from "react-icons/fa6";
-// import Search_vendor_popup from "./search_vendor_popup";
-import pdf_img from "../images/pdf_downlaod.png";
-import random_pdf from "../images/dummy-pdf_2.pdf";
-// import HoldPopUp from "./HoldPopUp";
-// import { FormControl, Select, MenuItem, InputLabel } from "@mui/material";
-// import { FaChevronDown } from "react-icons/fa";
-import {
-  GetAllGetQueryData,
-  updateBatchInvoiceStatus,
-  updateBatchFinanceStatus,
-} from "../../api/api";
-import { Circles } from "react-loader-spinner";
-// import { toast, ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
-// import { ReviewHooksFile } from "./reviewHooksFile";
-import { toast, ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
-import PartialPopup from "./PartialPopup";
+import { useNavigate } from "react-router-dom";
+
 function PartialApproval() {
-  const [invoicesData, setInvoicesData] = useState([]);
-  console.log(invoicesData, "get all hold data");
+  const navigate = useNavigate();
   const [vendorSearch, setVendorSearch] = useState("");
-  const [srnSearch, setSrnSearch] = useState("");
-  const [searchInvoiceNo, setSeachInvoiceNo] = useState("");
+  const [searchInvoiceNo, setSearchInvoiceNo] = useState("");
   const [batchSearch, setBatchSearch] = useState("");
   const [selectedDate, setSelectedDate] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [selectedRowData, setSelectedRowData] = useState(null);
-console.log("lala",selectedRowData)
-  // const [selectedStatus, setSelectedStatus] = useState("");
-  const [showHoldModal, setShowHoldModal] = useState(false);
-  const itemsPerPage = 8;
   const dateInputRef = useRef(null);
-  const [loading, setLoading] = useState(false);
+  const [invoices, setInvoices] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
 
-  const invoiceOptions = [
-    "Invoice",
-    "Approved",
-    "Hold",
-    "Rejected",
-    "Submitted",
-    "Partial Approved",
-    "Partial Finalized",
-  ];
-  const financeOptions = [
-    "Paid",
-    "Approved",
-    "Hold",
-    "Query",
-    "Validate",
-    "Payment Scheduled",
-    "Partial Payment",
-    "Bank Reject",
-    "Rejected",
-  ];
+  const handleIconClick = () => {
+    dateInputRef.current?.setFocus();
+  };
 
-  const vendorList = Array.isArray(invoicesData)
-    ? invoicesData.map(({ vendorName, srnNo }) => ({ vendorName, srnNo }))
-    : [];
+  // Fetch API data on component mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await GetPartialApprovedInvoiceData();
+        console.log("API Response reject data :", response);
+        if (response?.dataItems) {
+          setInvoices(response.dataItems);
+        } else {
+          toast.error("No data received from API");
+        }
+      } catch (error) {
+        console.error("Failed to fetch approval batch data:", error);
+        toast.error("Failed to fetch data");
+      }
+    };
+    fetchData();
+  }, []);
+
+  // Format date to DD-MM-YYYY
+  const formatDate = (dateTimeStr) => {
+    // Handle null, undefined, or empty string
+    if (!dateTimeStr || typeof dateTimeStr !== "string") {
+      console.warn("Invalid date input:", dateTimeStr);
+      return "--";
+    }
+
+    // Case 1: Already in DD/MM/YYYY or DD-MM-YYYY
+    if (/^\d{2}[/-]\d{2}[/-]\d{4}$/.test(dateTimeStr)) {
+      return dateTimeStr.replace(/\//g, "-");
+    }
+
+    // Case 2: YYYY-MM-DD format
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateTimeStr)) {
+      try {
+        const date = new Date(dateTimeStr);
+        if (isNaN(date.getTime())) {
+          console.warn("Invalid YYYY-MM-DD date:", dateTimeStr);
+          return "--";
+        }
+        return date.toLocaleDateString("en-GB", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+        });
+      } catch (e) {
+        console.warn("Error parsing YYYY-MM-DD date:", dateTimeStr, e);
+        return "--";
+      }
+    }
+
+    // Case 3: Custom format like "2025 15:37:37-04-21"
+    if (/\d{4}\s+\d{2}:\d{2}:\d{2}-\d{2}-\d{2}/.test(dateTimeStr)) {
+      try {
+        const [year, timeAndDate] = dateTimeStr.split(" ");
+        const [, , dayMonth] = timeAndDate.split(":");
+        const [, month, day] = dayMonth.split("-");
+        const formattedDate = `${day}-${month}-${year}`;
+        // Validate the constructed date
+        const date = new Date(`${year}-${month}-${day}`);
+        if (isNaN(date.getTime())) {
+          console.warn("Invalid custom format date:", dateTimeStr);
+          return "--";
+        }
+        return formattedDate;
+      } catch (e) {
+        console.warn("Error parsing custom format date:", dateTimeStr, e);
+        return "--";
+      }
+    }
+
+    // Fallback for any other format: Try parsing with Date
+    try {
+      const date = new Date(dateTimeStr);
+      if (isNaN(date.getTime())) {
+        console.warn("Unrecognized date format:", dateTimeStr);
+        return "--";
+      }
+      return date.toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      });
+    } catch (e) {
+      console.warn("Error parsing date with Date object:", dateTimeStr, e);
+      return "--";
+    }
+  };
+
+  // Format Date object to DD-MM-YYYY
+  const formatDateObject = (date) => {
+    if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
+      return "";
+    }
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
+    return `${day}-${month}-${year}`;
+  };
+
+  // Filter invoices based on search inputs
+  const filteredInvoices = invoices.filter((invoice) => {
+    const vendorMatch = vendorSearch
+      ? invoice.vendorName?.toLowerCase().includes(vendorSearch.toLowerCase())
+      : true;
+    const invoiceNoMatch = searchInvoiceNo
+      ? invoice.invoiceNo?.toLowerCase().includes(searchInvoiceNo.toLowerCase())
+      : true;
+    const batchMatch = batchSearch
+      ? String(invoice.batchNo).includes(batchSearch)
+      : true;
+    const dateMatch = selectedDate
+      ? formatDate(invoice.creationDate) === formatDateObject(selectedDate)
+      : true;
+    return vendorMatch && invoiceNoMatch && batchMatch && dateMatch;
+  });
+
+  // Reset currentPage when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [vendorSearch, searchInvoiceNo, batchSearch, selectedDate]);
+
+  // Pagination
+  const itemsPerPage = 8;
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentInvoices = filteredInvoices.slice(
+    indexOfFirstItem,
+    indexOfLastItem
+  );
+  const totalPages = Math.ceil(filteredInvoices.length / itemsPerPage);
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage((prev) => prev + 1);
+    }
+  };
+
+  const handlePrevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage((prev) => prev - 1);
+    }
+  };
 
   const getStatusBadgeClass = (status) => {
-    switch (status) {
-      case "Batch":
-        return "batch_badge_orange";
-      case "Approved":
-        return "approved_badge_green";
-      case "approved":
-        return "approved_badge_green";
-      case "Submitted":
-        return "submitted_badge_red";
-      case "Invoice":
-        return "invoice_badge_blue";
+    switch (status?.toLowerCase()) {
+      case "batch":
       case "hold":
         return "batch_badge_orange";
-      case "Hold":
-        return "batch_badge_orange";
-      case "Rejected":
-        return "rejected_badge_red";
+      case "approved":
+        return "approved_badge_green";
+      case "submitted":
+        return "submitted_badge_red";
+      case "invoice":
+        return "invoice_badge_blue";
       case "rejected":
         return "rejected_badge_red";
-      case "Paid":
-        return "paid_badge_red";
       case "paid":
         return "paid_badge_red";
-      case "Query":
-        return "query_badge_red";
-      case "Partial Payment":
-        return "partial_badge_red";
-      case "Partial Approved":
-        return "partial_approved_badge_red";
       case "query":
         return "query_badge_red";
+      case "partial payment":
+        return "partial_badge_red";
+      case "partial approved":
+        return "partial_approved_badge_red";
       case "bank":
         return "bank_badge";
       default:
@@ -109,415 +198,214 @@ console.log("lala",selectedRowData)
     }
   };
 
-  const handleIconClick = () => {
-    dateInputRef.current?.setFocus();
-  };
-
-  const handleNext = () => {
-    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
-  };
-
-  const handlePrevious = () => {
-    if (currentPage > 1) setCurrentPage(currentPage - 1);
-  };
-
-  const filteredInvoices = Array.isArray(invoicesData)
-    ? invoicesData.filter((inv) => {
-        if (!inv.invoiceDate) return false;
-        const invoiceDateObj = new Date(inv.invoiceDate);
-
-        const vendorName = inv.vendorName?.toLowerCase() || "";
-        const srnNo = inv.srnNo?.toLowerCase() || "";
-        const batchNo = inv.batchNo?.toLowerCase() || "";
-        const financeStatus = inv.financeStatus?.toLowerCase() || "";
-        const invoiceNumber = inv.invoiceNumber?.toLowerCase() || "";
-
-        const vendorMatch = vendorName.includes(vendorSearch.toLowerCase());
-        const srnMatch = srnNo.includes(srnSearch.toLowerCase());
-        const batchMatch = batchNo.includes(batchSearch.toLowerCase());
-        const invoiceNoMatch = invoiceNumber.includes(
-          searchInvoiceNo.toLowerCase()
-        );
-
-        const dateMatch = selectedDate
-          ? invoiceDateObj.toDateString() === selectedDate.toDateString()
-          : true;
-
-        
-        return (
-          vendorMatch &&
-          srnMatch &&
-          batchMatch &&
-          dateMatch &&
-          // statusMatch &&
-          invoiceNoMatch
-        );
-      })
-    : [];
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [
-    vendorSearch,
-    srnSearch,
-    batchSearch,
-    selectedDate,
-    // selectedStatus,
-    searchInvoiceNo,
-  ]);
-
-  const totalPages = Math.ceil(filteredInvoices.length / itemsPerPage);
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentInvoices = filteredInvoices.slice(
-    indexOfFirstItem,
-    indexOfLastItem
-  );
+  const invoiceOptions = ["Approved", "Rejected", "Partial Approved"];
 
   const handleInvoiceStatusChange = async (index, newStatus) => {
     const globalIndex = indexOfFirstItem + index;
-    const selectedInvoice = invoicesData[globalIndex];
+    const selectedInvoice = filteredInvoices[globalIndex];
     const batchNo = selectedInvoice?.batchNo;
 
-   
-
     try {
-      const reason = newStatus === "Rejected" ? "Some rejection reason" : "";
-
-      const response = await updateBatchInvoiceStatus({
+      const response = await updateInvoiceStatusNetworkForApproved({
         batchNo,
-        status: newStatus,
-        reason,
+        invoiceStatus: newStatus,
       });
-
-      setInvoicesData((prev) =>
-        prev.map((item, i) =>
-          i === globalIndex
+      setInvoices((prev) =>
+        prev.map((item) =>
+          item.batchNo === batchNo
             ? {
                 ...item,
                 invoiceStatus: newStatus,
-                financeStatus: newStatus === "Approved" ? "Submitted" : "",
+                financeStatus:
+                  newStatus === "Approved" ? "Submitted" : item.financeStatus,
               }
             : item
         )
       );
-
-      toast.success("Invoice status updated successfully!", {
-        position: "top-right",
-        autoClose: 3000,
-      });
+      toast.success("Invoice status updated successfully!");
     } catch (err) {
-      toast.error("Failed to update invoice status.", {
-        position: "top-right",
-        autoClose: 3000,
-      });
+      console.error("Failed to update invoice status:", err);
+      toast.error("Failed to update invoice status");
     }
   };
 
-  const handleFinanceStatusChange = async (index, newStatus) => {
-    const globalIndex = indexOfFirstItem + index;
-    const selectedInvoice = invoicesData[globalIndex];
-    const batchNo = selectedInvoice?.batchNo;
-
-    try {
-      const reason = newStatus === "Rejected" ? "Finance rejected" : "";
-
-      const response = await updateBatchFinanceStatus({
-        batchNo,
-        status: newStatus,
-        reason,
-      });
-
-      setInvoicesData((prev) =>
-        prev.map((item, i) =>
-          i === globalIndex
-            ? {
-                ...item,
-                financeStatus: newStatus,
-                invoiceStatus:
-                  newStatus !== "Approved" ? "Hold" : item.invoiceStatus,
-              }
-            : item
-        )
-      );
-
-      toast.success("Finance status updated successfully!", {
-        position: "top-right",
-        autoClose: 3000,
-      });
-    } catch (err) {
-      toast.error("Failed to update finance status.", {
-        position: "top-right",
-        autoClose: 3000,
-      });
-    }
-  };
-
-  useEffect(() => {
-    const getData = async () => {
-      setLoading(true);
-      try {
-        const data = await GetAllGetQueryData();
-        console.log("This is data ",data)
-        if (Array.isArray(data.dataItems)) {
-          setInvoicesData(data.dataItems);
-        } else {
-          setInvoicesData([]);
-        }
-      } catch (err) {
-        console.error("Failed to load invoice data", err);
-        setInvoicesData([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    getData();
-  }, []);
-
-  // console.log(currentInvoices, "current Invoice");
   return (
     <div>
-      {/* <Header /> */}
       <ToastContainer />
       <div className="container mt-4">
         <div className="netwrok_table_main_content">
-          <div className="d-flex justify-content-between  network_filter_div">
-            <h5 className="fw-bold m-0">Query Cases</h5>
-            {/* <button
-              className="btn btn-primary d-flex align-items-center"
-              style={{
-                backgroundColor: "#8000d7", // Custom purple
-                border: "none",
-                padding: "10px 20px",
-                borderRadius: "8px",
-                fontWeight: "500",
-                fontSize: "16px",
-              }}
-              onClick={() => setShowHoldModal(true)}>
-              <FaCirclePlus className="me-2" />
-              Create Batch
-            </button> */}
+          <div className="d-flex justify-content-between align-items-center network_filter_div">
+            <h5 className="fw-bold m-0">Approval Data</h5>
           </div>
-          <div className="d-flex justify-content-between  network_filter_div">
-            <div className="d-flex justify-content-between align-items-center all_search_input">
-              <div
-                className="review_batch_seach input-group"
-                style={{ maxWidth: "280px" }}
-              >
-                <div className="fa_search_main">
-                  <span className="input-group-text bg-light fasearch">
-                    <FaSearch className="text-muted" />
+          <div className="table-responsive mt-3">
+            <div className="d-flex justify-content-between network_filter_div">
+              <div className="d-flex justify-content-between align-items-center all_search_input">
+                <div
+                  className="review_batch_seach input-group"
+                  style={{ maxWidth: "280px" }}
+                >
+                  <div className="fa_search_main">
+                    <span className="input-group-text bg-light fasearch">
+                      <FaSearch className="text-muted" />
+                    </span>
+                  </div>
+                  <input
+                    type="text"
+                    className="form-control bg-light border-start-0"
+                    placeholder="Search by Vendor Name"
+                    value={vendorSearch}
+                    onChange={(e) => setVendorSearch(e.target.value)}
+                    style={{ borderLeft: "none", boxShadow: "none" }}
+                  />
+                </div>
+                <div
+                  className="review_batch_seach input-group"
+                  style={{ maxWidth: "240px" }}
+                >
+                  <div className="fa_search_main">
+                    <span className="input-group-text bg-light fasearch">
+                      <FaSearch className="text-muted" />
+                    </span>
+                  </div>
+                  <input
+                    type="text"
+                    className="form-control bg-light border-start-0"
+                    placeholder="Search by Invoice No"
+                    value={searchInvoiceNo}
+                    onChange={(e) => setSearchInvoiceNo(e.target.value)}
+                    style={{ borderLeft: "none", boxShadow: "none" }}
+                  />
+                </div>
+                <div
+                  className="review_batch_seach input-group"
+                  style={{ maxWidth: "240px" }}
+                >
+                  <div className="fa_search_main">
+                    <span className="input-group-text bg-light fasearch">
+                      <FaSearch className="text-muted" />
+                    </span>
+                  </div>
+                  <input
+                    type="text"
+                    className="form-control bg-light border-start-0"
+                    placeholder="Search by Batch No"
+                    value={batchSearch}
+                    onChange={(e) => setBatchSearch(e.target.value)}
+                    style={{ borderLeft: "none", boxShadow: "none" }}
+                  />
+                </div>
+              </div>
+              <div className="d-flex justify-content-between all_search_input">
+                <div
+                  className="custom_date_wrapper review_batch_seach"
+                  style={{ maxWidth: "240px" }}
+                >
+                  <DatePicker
+                    ref={dateInputRef}
+                    selected={selectedDate}
+                    onChange={(date) => setSelectedDate(date)}
+                    dateFormat="dd-MM-yyyy"
+                    placeholderText="dd-mm-yyyy"
+                    className="custom-date-input"
+                  />
+                  <span className="calendar-icon" onClick={handleIconClick}>
+                    <FaRegCalendarAlt />
                   </span>
                 </div>
-                <input
-                  type="text"
-                  className="form-control bg-light border-start-0"
-                  placeholder="Search by Vendor Name"
-                  value={vendorSearch}
-                  onChange={(e) => setVendorSearch(e.target.value)}
-                  style={{ borderLeft: "none", boxShadow: "none" }}
-                />
-              </div>
-              <div
-                className="review_batch_seach input-group"
-                style={{ maxWidth: "240px" }}
-              >
-                <div className="fa_search_main">
-                  <span className="input-group-text bg-light fasearch">
-                    <FaSearch className="text-muted" />
-                  </span>
-                </div>
-                <input
-                  type="text"
-                  className="form-control bg-light border-start-0"
-                  placeholder="Search by Invoice No"
-                  value={searchInvoiceNo}
-                  onChange={(e) => setSeachInvoiceNo(e.target.value)}
-                  style={{ borderLeft: "none", boxShadow: "none" }}
-                />
-              </div>
-              <div
-                className="review_batch_seach input-group"
-                style={{ maxWidth: "240px" }}
-              >
-                <div className="fa_search_main">
-                  <span className="input-group-text bg-light fasearch">
-                    <FaSearch className="text-muted" />
-                  </span>
-                </div>
-                <input
-                  type="number"
-                  className="form-control bg-light border-start-0"
-                  placeholder="Search by Batch No"
-                  value={batchSearch}
-                  onChange={(e) => setBatchSearch(e.target.value)}
-                  style={{ borderLeft: "none", boxShadow: "none" }}
-                />
               </div>
             </div>
-
-            <div className="d-flex justify-content-between  all_search_input">
-              <div
-                className="custom_date_wrapper review_batch_seach"
-                style={{ maxWidth: "240px" }}
-              >
-                <DatePicker
-                  ref={dateInputRef}
-                  selected={selectedDate}
-                  onChange={(date) => setSelectedDate(date)}
-                  dateFormat="dd-MM-yyyy"
-                  placeholderText="dd-mm-yyyy"
-                  className="custom-date-input"
-                />
-                <span className="calendar-icon" onClick={handleIconClick}>
-                  <FaRegCalendarAlt />
-                </span>
-              </div>
-            </div>
-          </div>
-          {loading ? (
-            // <div className="text-center mt-4">Loading invoices...</div>
-            <div
-              className="d-flex justify-content-center align-items-center"
-              style={{ height: "200px" }}
-            >
-              <Circles
-                height="60"
-                width="60"
-                color="#FE850E"
-                ariaLabel="circles-loading"
-                visible={true}
-              />
-            </div>
-          ) : (
-            <div className="table-responsive mt-3">
-              <Table className="bg-white text-center border-0 network_table">
-                <thead style={{ backgroundColor: "#EEF4FF" }}>
-                  <tr className="text-dark fw-semibold table_th_border">
-                    <th className="border-start">View</th>
-                    
-                    <th style={{ whiteSpace: "nowrap" }}>Batch No</th>
-                    <th style={{ whiteSpace: "nowrap" }}>Vendor Name</th>
-                    <th style={{ whiteSpace: "nowrap" }}>Approval Date</th>
-                    <th style={{ whiteSpace: "nowrap" }}>Case Count</th>
-                 
-                    <th style={{ whiteSpace: "nowrap" }}>Invoice No</th>
-                    <th style={{ whiteSpace: "nowrap" }}>Invoice Date</th>
-                    <th style={{ whiteSpace: "nowrap" }}>Invoice Amount</th>
-                    <th style={{ whiteSpace: "nowrap" }}>Reimbursement</th>
-                    <th style={{ whiteSpace: "nowrap" }}>Expense</th>
-                    <th style={{ whiteSpace: "nowrap" }}>GST</th>
-                    <th style={{ whiteSpace: "nowrap" }}>TDS</th>
-                    <th style={{ whiteSpace: "nowrap" }}>Payable</th>
-                    <th style={{ whiteSpace: "nowrap" }}>Pdf</th>
-                    <th style={{ whiteSpace: "nowrap" }}>Remarks Date</th>
-                    <th style={{ whiteSpace: "nowrap" }}>Remarks</th>
-                    <th style={{ whiteSpace: "nowrap" }}>Invoice Status</th>
-                    <th className="border-end" style={{ whiteSpace: "nowrap" }}>
-                      Finance Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {currentInvoices.map((invoice, index) => (
+            <Table className="bg-white text-center border-0 network_table">
+              <thead style={{ backgroundColor: "#EEF4FF" }}>
+                <tr className="text-dark fw-semibold table_th_border">
+                  <th className="border-start" style={{ whiteSpace: "nowrap" }}>
+                    View
+                  </th>
+                  <th style={{ whiteSpace: "nowrap" }}>Batch no</th>
+                  <th style={{ whiteSpace: "nowrap" }}>Vendor Name</th>
+                  <th style={{ whiteSpace: "nowrap" }}>Case Count</th>
+                  <th style={{ whiteSpace: "nowrap" }}>Creation Date</th>
+                  <th style={{ whiteSpace: "nowrap" }}>Closure Date</th>
+                  <th style={{ whiteSpace: "nowrap" }}>Total Repair Charges</th>
+                  <th style={{ whiteSpace: "nowrap" }}>
+                    Total Service Charges
+                  </th>
+                  <th style={{ whiteSpace: "nowrap" }}>Total</th>
+                  <th style={{ whiteSpace: "nowrap" }}>Remarks</th>
+                  <th>Invoice</th>
+                  <th style={{ whiteSpace: "nowrap" }}>Invoice Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {currentInvoices.length > 0 ? (
+                  currentInvoices.map((invoice, index) => (
                     <tr
-                      key={index}
+                      key={invoice.id || `${invoice.batchNo}-${index}`}
                       className="text-center border-bottom network_td_item"
                     >
-                      <td className="border-start align-middle">
+                      <td className="border-start align-middle cursor-pointer">
                         <FaEye
                           className="text-purple review_fa_eye"
-                          style={{ cursor: "pointer" }}
                           onClick={() => {
-                            setSelectedRowData(invoice); // set the row data
-                            setShowHoldModal(true); // open popup
+                            navigate("/approvalBatchPage", {
+                              state: { batchData: invoice },
+                            });
                           }}
                         />
                       </td>
-                     
                       <td className="align-middle">
-                        {invoice.batchNo ?? "--"}
+                        {invoice.batchNo || "--"}
                       </td>
                       <td className="align-middle">
-                        {invoice.vendorName ?? "--"}
+                        {invoice.vendorName || "--"}
                       </td>
                       <td className="align-middle">
-                        {invoice.approvalDate ?? "--"}
+                        {invoice.caseCount || "--"}
                       </td>
-                      {/* <td className="align-middle">
-                        {invoice.batchCreationDate
-                          ? new Date(
-                              invoice.batchCreationDate
-                            ).toLocaleDateString("en-GB")
+                      <td className="align-middle">
+                        {formatDate(invoice.creationDate)}
+                      </td>
+                      <td className="align-middle">
+                        {formatDate(invoice.closureDate) || "--"}
+                      </td>
+                      <td className="align-middle">
+                        {invoice.totalRepairCharges || "--"}
+                      </td>
+                      <td className="align-middle">
+                        {invoice.totalServiceCharges || "--"}
+                      </td>
+                      <td className="align-middle">
+                        {invoice.total
+                          ? `${invoice.total
+                              .split(",")
+                              .map((val) => parseFloat(val.trim()))
+                              .reduce(
+                                (acc, num) => acc + (isNaN(num) ? 0 : num),
+                                0
+                              )
+                              .toLocaleString()}`
                           : "--"}
                       </td>
                       <td className="align-middle">
-                        {invoice.batchClosureDate
-                          ? new Date(
-                              invoice.batchClosureDate
-                            ).toLocaleDateString("en-GB")
-                          : "--"}
-                      </td> */}
-                      <td className="align-middle">
-                        {invoice.caseCount ?? "--"}
+                        {invoice.remarks || "No remark"}
                       </td>
                       <td className="align-middle">
-                        {invoice.invoiceNumber ?? "--"}
-                      </td>
-                      <td className="align-middle">
-                        {invoice.invoiceDate
-                          ? new Date(invoice.invoiceDate).toLocaleDateString(
-                              "en-GB"
-                            )
-                          : "--"}
-                      </td>
-                      <td className="align-middle">
-                        {invoice.invoiceAmount ?? "--"}
-                      </td>
-                      <td className="align-middle">
-                        {invoice.reimbursement ?? "--"}
-                      </td>
-                      <td className="align-middle">
-                        {invoice.expense ?? "--"}
-                      </td>
-                      <td className="align-middle">{invoice.gst ?? "--"}</td>
-                      <td className="align-middle">{invoice.tds ?? "--"}</td>
-                      <td className="align-middle">
-                        {invoice.payable ?? "--"}
-                      </td>
-                      <td className="align-middle">
-                        {invoice.pdf ? (
+                        {invoice.invoice ? (
                           <a
-                            href={invoice.pdf}
-                            download
+                            href={invoice.invoice}
                             target="_blank"
                             rel="noopener noreferrer"
+                            download
                           >
                             <img
-                              src={pdf_img}
-                              alt="PDF"
-                              style={{ width: "24px", height: "24px" }}
+                              src={pdfimage}
+                              alt="Download PDF"
+                              style={{ height: "24px", cursor: "pointer" }}
                             />
                           </a>
                         ) : (
-                          <a
-                            href={random_pdf}
-                            download
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            <img
-                              src={pdf_img}
-                              alt="PDF"
-                              style={{ width: "24px", height: "24px" }}
-                            />
-                          </a>
+                          "--"
                         )}
                       </td>
-                      <td className="align-middle">{invoice.date ?? "--"}</td>
-                      <td className="align-middle">{invoice.issue ?? "--"}</td>
-                      {/* Invoice Status Dropdown */}
                       <td className="align-middle">
                         {invoice.invoiceStatus !== "Approved" ? (
                           <Dropdown className="network_table_main">
@@ -544,52 +432,41 @@ console.log("lala",selectedRowData)
                             </Dropdown.Menu>
                           </Dropdown>
                         ) : (
-                          <div className="network_table_main">
-                            <span
-                              className={`custom-dropdown-toggle network_table_approve ${getStatusBadgeClass(
-                                invoice.invoiceStatus
-                              )}`}
-                            >
-                              {invoice.invoiceStatus}
-                            </span>
-                          </div>
+                          <span
+                            className={`custom-dropdown-toggle network_table_approve ${getStatusBadgeClass(
+                              invoice.invoiceStatus
+                            )}`}
+                          >
+                            {invoice.invoiceStatus}
+                          </span>
                         )}
                       </td>
-
-                      {/* Finance Status Dropdown */}
-                      <td className="align-middle border-end">
-                        <div className="network_table_main">
-                          <span
-                            className={`custom-dropdown-toggle network_table_approve ${
-                              invoice.financeStatus
-                                ? getStatusBadgeClass(invoice.financeStatus)
-                                : ""
-                            }`}
-                          >
-                            {invoice.financeStatus || "--"}
-                          </span>
-                        </div>
-                      </td>
                     </tr>
-                  ))}
-                </tbody>
-              </Table>
-            </div>
-          )}
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="12" className="text-center py-4">
+                      No data available
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </Table>
+          </div>
           <div className="d-flex justify-content-between align-items-center pagination-container network_previous">
             <button
               className="network_previous"
-              onClick={handlePrevious}
+              onClick={handlePrevPage}
               disabled={currentPage === 1}
             >
               Previous
             </button>
-            <span className="page-info ">
+            <span className="page-info">
               Page {currentPage} of {totalPages}
             </span>
             <button
               className="network_previous"
-              onClick={handleNext}
+              onClick={handleNextPage}
               disabled={currentPage === totalPages}
             >
               Next
@@ -597,11 +474,6 @@ console.log("lala",selectedRowData)
           </div>
         </div>
       </div>
-      <PartialPopup
-        show={showHoldModal}
-        handleClose={() => setShowHoldModal(false)}
-        selectedData={selectedRowData}
-      />
     </div>
   );
 }

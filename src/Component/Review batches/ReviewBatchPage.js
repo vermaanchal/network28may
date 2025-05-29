@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Table, Form, Button } from "react-bootstrap";
 import {
@@ -33,7 +34,6 @@ const ReviewBatchPage = () => {
   const [invoiceAmount, setInvoiceAmount] = useState("");
   const [amountError, setAmountError] = useState("");
   const [hoveredRow, setHoveredRow] = useState(null);
-
   const [fieldErrors, setFieldErrors] = useState({
     invoiceNo: false,
     invoiceDate: false,
@@ -41,7 +41,7 @@ const ReviewBatchPage = () => {
     caseCount: false,
   });
 
-  const itemsPerPage = 10; // Updated to 10 per page
+  const itemsPerPage = 10;
   const totalPages = Math.ceil(invoices.length / itemsPerPage);
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
@@ -54,12 +54,13 @@ const ReviewBatchPage = () => {
     return total + (isNaN(amount) ? 0 : amount);
   }, 0);
 
-  const grossAmount = currentInvoices.reduce((total, invoice) => {
-    const cleanedAmount = invoice.total?.toString().replace(/,/g, "");
+  const totalServiceCharges = currentInvoices.reduce((total, invoice) => {
+    const cleanedAmount = invoice.serviceCharges?.toString().replace(/,/g, "");
     const amount = parseFloat(cleanedAmount);
     return total + (isNaN(amount) ? 0 : amount);
   }, 0);
 
+  const grossAmount = totalServiceCharges + totalRepairCharges;
   const gstAmount = isGSTApplied
     ? (grossAmount * 0.18).toFixed(2)
     : (0).toFixed(2);
@@ -82,7 +83,7 @@ const ReviewBatchPage = () => {
   useEffect(() => {
     console.log("Selected Batch Data:", selectedBatchData);
     if (!selectedBatchData) {
-      navigate("/"); // Redirect if no data
+      navigate("/");
       return;
     }
     setIsLoading(true);
@@ -96,9 +97,7 @@ const ReviewBatchPage = () => {
           fetch(`${BASE_URL}/GetGadgetCaseDetailsByAA?aaNumbers=${aaNo}`)
             .then((response) => {
               if (!response.ok) {
-                console.error(
-                  `HTTP error for aaNo ${aaNo}: ${response.status}`
-                );
+                console.error(`HTTP error for aaNo ${aaNo}: ${response.status}`);
                 return null;
               }
               return response.json();
@@ -168,9 +167,12 @@ const ReviewBatchPage = () => {
       if (!matchedData) return "row-red";
       if (
         normalize(matchedData.serviceType) !== normalize(invoice.serviceType) ||
-        normalize(matchedData.sellingPartner) !== normalize(invoice.sellingPartner) ||
-        normalize(matchedData.repairCharges) !== normalize(invoice.repairCharges) ||
-        normalize(matchedData.serviceCharges) !== normalize(invoice.serviceCharges) ||
+        normalize(matchedData.sellingPartner) !==
+          normalize(invoice.sellingPartner) ||
+        normalize(matchedData.repairCharges) !==
+          normalize(invoice.repairCharges) ||
+        normalize(matchedData.serviceCharges) !==
+          normalize(invoice.serviceCharges) ||
         normalize(matchedData.total) !== normalize(invoice.total)
       ) {
         return "row-yellow";
@@ -203,7 +205,6 @@ const ReviewBatchPage = () => {
         api: matchedData.imeiNumber || "-",
       });
     }
-    console.log(matchedData.sellingPartner,'selllll',invoice.sellingPartner)
     if (
       normalize(matchedData.sellingPartner) !==
       normalize(invoice.sellingPartner)
@@ -223,8 +224,9 @@ const ReviewBatchPage = () => {
         api: matchedData.repairCharges || "-",
       });
     }
-     if (
-      normalize(matchedData.serviceCharges) !== normalize(invoice.serviceCharges)
+    if (
+      normalize(matchedData.serviceCharges) !==
+      normalize(invoice.serviceCharges)
     ) {
       differences.push({
         field: "Service Charges",
@@ -237,13 +239,6 @@ const ReviewBatchPage = () => {
         field: "Total Amount",
         table: invoice.total || "-",
         api: matchedData.total || "-",
-      });
-    }
-        if (normalize(matchedData.sellingPartner) !== normalize(invoice.sellingPartner)) {
-      differences.push({
-        field: "Selling Partner",
-        table: invoice.sellingPartner || "-",
-        api: matchedData.sellingPartner || "-",
       });
     }
     return differences.length > 0 ? differences : [];
@@ -285,6 +280,7 @@ const ReviewBatchPage = () => {
           setInvoiceNo(row["Invoice No"] || "");
           setInvoiceDate(row["Invoice Date"] || "");
           setInvoiceAmount(row["Invoice Amount"] || "");
+          setCaseCount(row["Case Count"] || "");
         },
         error: (err) => {
           console.error("CSV parsing error:", err);
@@ -321,7 +317,6 @@ const ReviewBatchPage = () => {
       makeModel: invoice.makeModel || "",
       repairCharges: invoice.repairCharges || "",
       serviceCharges: invoice.serviceCharges || "",
-
       total: invoice.total || "",
       remarks: invoice.remarks || "",
     }));
@@ -340,56 +335,92 @@ const ReviewBatchPage = () => {
         alert("Please select at least one invoice.");
         return;
       }
-      if (!uploadedFile) {
-        const confirmProceed = window.confirm(
-          "No invoice file uploaded. Do you want to continue without uploading?"
-        );
-        if (!confirmProceed) {
-          return;
-        }
-      }
-      if (uploadedFile) {
-        const newErrors = {
-          invoiceNo: !invoiceNo,
-          invoiceDate: !invoiceDate,
-          invoiceAmount: !invoiceAmount,
-          caseCount: !caseCount,
-        };
-        setFieldErrors(newErrors);
-        if (Object.values(newErrors).some(Boolean)) {
-          alert("Please fill all required invoice fields.");
-          return;
-        }
-        if (parseFloat(invoiceAmount) !== parseFloat(finalAmount)) {
-          alert("Invoice Amount and Final Amount do not match.");
-          return;
-        }
-        if (parseInt(caseCount) !== selectedAAno.length) {
-          alert("Case Count does not match the number of selected services.");
-          return;
-        }
-      }
 
-      const hasMismatch = selected.some((invoice) => {
-        const matchedData = apiData.find(item => item.aA_Number === invoice.aA_Number);
-        if (!matchedData) return true;
+      // Validate required fields
+      const newErrors = {
+        invoiceNo: !invoiceNo.trim(),
+        invoiceDate: !invoiceDate,
+        invoiceAmount: !invoiceAmount.trim(),
+        caseCount: !caseCount.trim(),
+      };
+      setFieldErrors(newErrors);
 
-        const normalize = (val) => (val ? val.toString().trim() : "").toLowerCase();
-
-        return (
-          normalize(matchedData.serviceType) !== normalize(invoice.serviceType) ||
-          normalize(matchedData.repairCharges) !== normalize(invoice.repairCharges) ||
-          normalize(matchedData.serviceCharges) !== normalize(invoice.serviceCharges) ||
-          normalize(matchedData.sellingPartner) !== normalize(invoice.sellingPartner) ||
-          normalize(matchedData.total) !== normalize(invoice.total)
-        );
-      });
-
-      if (hasMismatch) {
-        alert("Data mismatch found in one or more selected invoices. Please resolve before submitting.");
+      if (Object.values(newErrors).some((error) => error)) {
+        alert("Please fill all required invoice fields.");
         return;
       }
 
+      // Validate invoice amount
+      const parsedInvoiceAmount = parseFloat(invoiceAmount);
+      if (isNaN(parsedInvoiceAmount) || parsedInvoiceAmount <= 0) {
+        setFieldErrors((prev) => ({ ...prev, invoiceAmount: true }));
+        setAmountError("Invoice Amount must be a valid positive number.");
+        return;
+      }
+
+      if (Math.abs(parsedInvoiceAmount - parseFloat(finalAmount)) > 0.01) {
+        setFieldErrors((prev) => ({ ...prev, invoiceAmount: true }));
+        setAmountError("Invoice Amount and Final Amount do not match.");
+        return;
+      } else {
+        setAmountError("");
+      }
+
+      // Validate case count
+      const parsedCaseCount = parseInt(caseCount);
+      if (isNaN(parsedCaseCount) || parsedCaseCount <= 0) {
+        setFieldErrors((prev) => ({ ...prev, caseCount: true }));
+        alert("Case Count must be a valid positive number.");
+        return;
+      }
+
+      if (parsedCaseCount !== selectedAAno.length) {
+        setFieldErrors((prev) => ({ ...prev, caseCount: true }));
+        alert("Case Count does not match the number of selected services.");
+        return;
+      }
+
+      // Validate invoice date
+      const today = new Date().toISOString().split("T")[0];
+      if (invoiceDate > today) {
+        setFieldErrors((prev) => ({ ...prev, invoiceDate: true }));
+        alert("Invoice Date cannot be a future date.");
+        return;
+      }
+
+      // Check for data mismatches
+      let hasMismatch = false;
+      for (const invoice of selected) {
+        const matchedData = apiData.find(
+          (item) => item.aA_Number === invoice.aA_Number
+        );
+        if (!matchedData) {
+          alert(
+            `AA Number ${invoice.aA_Number} not found in reference data.\nPlease delete the row or check the source.`
+          );
+          return;
+        }
+
+        if (
+          normalize(matchedData.serviceType) !== normalize(invoice.serviceType) ||
+          normalize(matchedData.repairCharges) !==
+            normalize(invoice.repairCharges) ||
+          normalize(matchedData.serviceCharges) !==
+            normalize(invoice.serviceCharges) ||
+          normalize(matchedData.total) !== normalize(invoice.total)
+        ) {
+          hasMismatch = true;
+        }
+      }
+
+      if (hasMismatch) {
+        const confirmProceed = window.confirm(
+          "Warning: Some invoice fields do not match the original data.\nDo you want to proceed anyway?"
+        );
+        if (!confirmProceed) return;
+      }
+
+      // Prepare form data for submission
       const formData = new FormData();
       const extract = (key) =>
         selected.map((item) => item[key] || "").join(", ");
@@ -402,6 +433,7 @@ const ReviewBatchPage = () => {
       formData.append("VendorName", selectedBatchData?.vendorName || "");
       formData.append("finalAmount", finalAmount);
       formData.append("TotalRepairCharges", totalRepairCharges.toFixed(2));
+      formData.append("TotalServiceCharges", totalServiceCharges.toFixed(2));
       formData.append("BatchNo", selectedBatchData?.batchNo || "");
       formData.append("ServiceType", extract("serviceType"));
       formData.append("Brand", extract("brand"));
@@ -414,14 +446,15 @@ const ReviewBatchPage = () => {
         "InvoiceStatus",
         uploadedFile ? "Invoice Uploaded" : extract("invoiceStatus")
       );
-      formData.append("InvoiceNo", invoiceNo || "");
-      formData.append("InvoiceDate", invoiceDate || "");
-      formData.append("InvoiceAmount", invoiceAmount || "");
-      formData.append("CaseCount", caseCount || selected.length.toString());
+      formData.append("InvoiceNo", invoiceNo);
+      formData.append("InvoiceDate", invoiceDate);
+      formData.append("InvoiceAmount", invoiceAmount);
+      formData.append("CaseCount", caseCount);
       formData.append("IsGSTApplied", isGSTApplied ? "true" : "false");
       if (uploadedFile) {
         formData.append("Invoice", uploadedFile, uploadedFile.name);
       }
+
       const response = await fetch(`${BASE_URL}/SaveApprovalBatchData`, {
         method: "POST",
         body: formData,
@@ -432,7 +465,7 @@ const ReviewBatchPage = () => {
         return;
       }
       alert("Batch submitted successfully.");
-      navigate(invoiceNo ? "/approval" : "/");
+      navigate(uploadedFile ? "/approval" : "/");
     } catch (error) {
       console.error("Submission failed:", error);
       alert("Submission failed. Please check console for details.");
@@ -632,7 +665,7 @@ const ReviewBatchPage = () => {
                       <td className="align-middle">
                         {invoice.serviceType || ""}
                       </td>
-                       <td className="align-middle">
+                      <td className="align-middle">
                         {invoice.sellingPartner || ""}
                       </td>
                       <td className="align-middle">{invoice.brand || ""}</td>
@@ -642,7 +675,7 @@ const ReviewBatchPage = () => {
                       <td className="align-middle">
                         {invoice.repairCharges || ""}
                       </td>
-                       <td className="align-middle">
+                      <td className="align-middle">
                         {invoice.serviceCharges || ""}
                       </td>
                       <td className="align-middle">{invoice.total || ""}</td>
@@ -764,6 +797,12 @@ const ReviewBatchPage = () => {
                 </div>
               </div>
               <div className="text-start batch_popup_amount">
+                <div className="fw-bold batch_gross">Total Service Charges</div>
+                <div className="batch_amount_to_fix">
+                  ₹ {totalServiceCharges.toFixed(2)}
+                </div>
+              </div>
+              <div className="text-start batch_popup_amount">
                 <div className="fw-bold batch_gross">Total Gross Amount</div>
                 <div className="batch_amount_to_fix">
                   ₹ {grossAmount.toFixed(2)}
@@ -823,18 +862,25 @@ const ReviewBatchPage = () => {
                   <input
                     type="text"
                     className={`form-control border-dark ${
-                      uploadedFile && fieldErrors.caseCount ? "is-invalid" : ""
+                      fieldErrors.caseCount ? "is-invalid" : ""
                     }`}
                     placeholder="Enter Case Count"
                     value={caseCount}
-                    onChange={(e) => setCaseCount(e.target.value)}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setCaseCount(value);
+                      setFieldErrors((prev) => ({
+                        ...prev,
+                        caseCount: !value.trim() || isNaN(value) || parseInt(value) <= 0,
+                      }));
+                    }}
                   />
-                  {uploadedFile && fieldErrors.caseCount && (
+                  {fieldErrors.caseCount && (
                     <div
                       className="text-danger mt-1"
                       style={{ fontSize: "14px" }}
                     >
-                      Case Count is required.
+                      Case Count must be a valid positive number.
                     </div>
                   )}
                 </div>
@@ -843,13 +889,20 @@ const ReviewBatchPage = () => {
                   <input
                     type="text"
                     className={`form-control border-dark ${
-                      uploadedFile && fieldErrors.invoiceNo ? "is-invalid" : ""
+                      fieldErrors.invoiceNo ? "is-invalid" : ""
                     }`}
                     placeholder="Enter Invoice No"
                     value={invoiceNo}
-                    onChange={(e) => setInvoiceNo(e.target.value)}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setInvoiceNo(value);
+                      setFieldErrors((prev) => ({
+                        ...prev,
+                        invoiceNo: !value.trim(),
+                      }));
+                    }}
                   />
-                  {uploadedFile && fieldErrors.invoiceNo && (
+                  {fieldErrors.invoiceNo && (
                     <div
                       className="text-danger mt-1"
                       style={{ fontSize: "14px" }}
@@ -863,58 +916,61 @@ const ReviewBatchPage = () => {
                   <input
                     type="date"
                     className={`form-control border-dark ${
-                      uploadedFile && fieldErrors.invoiceDate
-                        ? "is-invalid"
-                        : ""
+                      fieldErrors.invoiceDate ? "is-invalid" : ""
                     }`}
                     value={invoiceDate}
-                    onChange={(e) => setInvoiceDate(e.target.value)}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setInvoiceDate(value);
+                      setFieldErrors((prev) => ({
+                        ...prev,
+                        invoiceDate: !value || value > new Date().toISOString().split("T")[0],
+                      }));
+                    }}
                     max={new Date().toISOString().split("T")[0]}
                   />
-                  {uploadedFile && fieldErrors.invoiceDate && (
+                  {fieldErrors.invoiceDate && (
                     <div
                       className="text-danger mt-1"
                       style={{ fontSize: "14px" }}
                     >
-                      Invoice Date is required.
+                      Invoice Date is required and cannot be a future date.
                     </div>
                   )}
                 </div>
                 <div className="col-md-4 align-items-center mb-3">
-                  <label className="me-2 fw-semibold w-50">
-                    Invoice Amount
-                  </label>
+                  <label className="me-2 fw-semibold w-50">Invoice Amount</label>
                   <input
                     type="text"
                     className={`form-control border-dark ${
-                      uploadedFile && (fieldErrors.invoiceAmount || amountError)
-                        ? "is-invalid"
-                        : ""
+                      fieldErrors.invoiceAmount || amountError ? "is-invalid" : ""
                     }`}
                     placeholder="Enter Invoice Amount"
                     value={invoiceAmount}
                     onChange={(e) => {
                       const enteredAmount = e.target.value;
                       setInvoiceAmount(enteredAmount);
-                      if (uploadedFile) {
-                        if (
-                          parseFloat(enteredAmount) !== parseFloat(finalAmount)
-                        ) {
-                          setAmountError(
-                            "Invoice Amount and Final Amount do not match."
-                          );
+                      setFieldErrors((prev) => ({
+                        ...prev,
+                        invoiceAmount: !enteredAmount.trim() || isNaN(enteredAmount) || parseFloat(enteredAmount) <= 0,
+                      }));
+                      if (enteredAmount.trim() && !isNaN(enteredAmount)) {
+                        if (Math.abs(parseFloat(enteredAmount) - parseFloat(finalAmount)) > 0.01) {
+                          setAmountError("Invoice Amount and Final Amount do not match.");
                         } else {
                           setAmountError("");
                         }
+                      } else {
+                        setAmountError("");
                       }
                     }}
                   />
-                  {uploadedFile && fieldErrors.invoiceAmount && (
+                  {fieldErrors.invoiceAmount && (
                     <div
                       className="text-danger mt-1"
                       style={{ fontSize: "14px" }}
                     >
-                      Invoice Amount is required.
+                      Invoice Amount must be a valid positive number.
                     </div>
                   )}
                   {amountError && (

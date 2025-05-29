@@ -1,5 +1,3 @@
-
-
 import React, { useState, useRef, useEffect } from "react";
 import Header from "../Header/header";
 import { IoFilterSharp } from "react-icons/io5";
@@ -15,6 +13,8 @@ import { FaCirclePlus } from "react-icons/fa6";
 import Search_vendor_popup from "./search_vendor_popup";
 import pdf_img from "../images/pdf_downlaod.png";
 import random_pdf from "../images/dummy-pdf_2.pdf";
+import pdfimage from "../images/pdf_downlaod.png";
+
 import { FormControl, Select, MenuItem, InputLabel } from "@mui/material";
 import Chip from "@mui/material/Chip";
 import {
@@ -250,288 +250,345 @@ function Review_batches() {
       <ToastContainer />
       <div className="container mt-4">
         <div className="netwrok_table_main_content">
-          <div className="table-container mt-3" style={{ overflowX: "auto", width: "100%" }}>
-          <div className="d-flex justify-content-between network_filter_div">
-            <h5 className="fw-bold m-0">Review Batches</h5>
-            <button
-              className="btn btn-primary d-flex align-items-center"
-              style={{
-                backgroundColor: "#8000d7",
-                border: "none",
-                padding: "10px 20px",
-                borderRadius: "8px",
-                fontWeight: "bold",
-                fontSize: "16px",
-              }}
-              onClick={() => setShowHoldModal(true)}
-            >
-              <FaCirclePlus className="me-2" />
-              Create Batch
-            </button>
-          </div>
-          <div className="d-flex justify-content-between network_filter_div">
-            <div className="d-flex justify-content-between align-items-center all_search_input">
-              <div
-                className="review_batch_seach input-group"
-                style={{ maxWidth: "280px" }}
+          <div
+            className="table-container mt-3"
+            style={{ overflowX: "auto", width: "100%" }}
+          >
+            <div className="d-flex justify-content-between network_filter_div">
+              <h5 className="fw-bold m-0">Review Batches</h5>
+              <button
+                className="btn btn-primary d-flex align-items-center"
+                style={{
+                  backgroundColor: "#8000d7",
+                  border: "none",
+                  padding: "10px 20px",
+                  borderRadius: "8px",
+                  fontWeight: "bold",
+                  fontSize: "16px",
+                }}
+                onClick={() => setShowHoldModal(true)}
               >
-                <div className="fa_search_main">
-                  <span className="input-group-text bg-light fasearch">
-                    <FaSearch className="text-muted" />
-                  </span>
-                </div>
-                <input
-                  type="text"
-                  className="form-control bg-light border-start-0"
-                  placeholder="Search by Vendor Name"
-                  value={vendorSearch}
-                  onChange={(e) => setVendorSearch(e.target.value)}
-                  style={{ borderLeft: "none", boxShadow: "none" }}
-                />
-              </div>
-              <div
-                className="review_batch_seach input-group"
-                style={{ maxWidth: "240px" }}
-              >
-                <div className="fa_search_main">
-                  <span className="input-group-text bg-light fasearch">
-                    <FaSearch className="text-muted" />
-                  </span>
-                </div>
-                <input
-                  type="text"
-                  className="form-control bg-light border-start-0"
-                  placeholder="Search by Invoice No"
-                  value={searchInvoiceNo}
-                  onChange={(e) => setSeachInvoiceNo(e.target.value)}
-                  style={{ borderLeft: "none", boxShadow: "none" }}
-                />
-              </div>
-              <div
-                className="review_batch_seach input-group"
-                style={{ maxWidth: "240px" }}
-              >
-                <div className="fa_search_main">
-                  <span className="input-group-text bg-light fasearch">
-                    <FaSearch className="text-muted" />
-                  </span>
-                </div>
-                <input
-                  type="number"
-                  className="form-control bg-light border-start-0"
-                  placeholder="Search by Batch No"
-                  value={batchSearch}
-                  onChange={(e) => setBatchSearch(e.target.value)}
-                  style={{ borderLeft: "none", boxShadow: "none" }}
-                />
-              </div>
+                <FaCirclePlus className="me-2" />
+                Create Batch
+              </button>
             </div>
-
-            <div className="d-flex justify-content-between all_search_input">
-              <div
-                className="custom_date_wrapper review_batch_seach"
-                style={{ maxWidth: "240px" }}
-              >
-                <DatePicker
-                  ref={dateInputRef}
-                  selected={selectedDate}
-                  onChange={(date) => setSelectedDate(date)}
-                  dateFormat="dd-MM-yyyy"
-                  placeholderText="dd-mm-yyyy"
-                  className="custom-date-input"
-                />
-                <span className="calendar-icon" onClick={handleIconClick}>
-                  <FaRegCalendarAlt />
-                </span>
-              </div>
-              <div
-                className="input-group review_batch_status"
-                style={{ maxWidth: "240px" }}
-              >
-                <select
-                  className="form-select bg-light custom-status-dropdown"
-                  value={selectedStatus}
-                  onChange={(e) => setSelectedStatus(e.target.value)}
+            <div className="d-flex justify-content-between network_filter_div">
+              <div className="d-flex justify-content-between align-items-center all_search_input">
+                <div
+                  className="review_batch_seach input-group"
+                  style={{ maxWidth: "280px" }}
                 >
-                  <option value="">Status</option>
-                  <option value="Approved">Approved</option>
-                  <option value="Rejected">Rejected</option>
-                  <option value="Hold">Hold</option>
-                  <option value="All">All</option>
-                </select>
+                  <div className="fa_search_main">
+                    <span className="input-group-text bg-light fasearch">
+                      <FaSearch className="text-muted" />
+                    </span>
+                  </div>
+                  <input
+                    type="text"
+                    className="form-control bg-light border-start-0"
+                    placeholder="Search by Vendor Name"
+                    value={vendorSearch}
+                    onChange={(e) => setVendorSearch(e.target.value)}
+                    style={{ borderLeft: "none", boxShadow: "none" }}
+                  />
+                </div>
+                <div
+                  className="review_batch_seach input-group"
+                  style={{ maxWidth: "240px" }}
+                >
+                  <div className="fa_search_main">
+                    <span className="input-group-text bg-light fasearch">
+                      <FaSearch className="text-muted" />
+                    </span>
+                  </div>
+                  <input
+                    type="text"
+                    className="form-control bg-light border-start-0"
+                    placeholder="Search by Invoice No"
+                    value={searchInvoiceNo}
+                    onChange={(e) => setSeachInvoiceNo(e.target.value)}
+                    style={{ borderLeft: "none", boxShadow: "none" }}
+                  />
+                </div>
+                <div
+                  className="review_batch_seach input-group"
+                  style={{ maxWidth: "240px" }}
+                >
+                  <div className="fa_search_main">
+                    <span className="input-group-text bg-light fasearch">
+                      <FaSearch className="text-muted" />
+                    </span>
+                  </div>
+                  <input
+                    type="number"
+                    className="form-control bg-light border-start-0"
+                    placeholder="Search by Batch No"
+                    value={batchSearch}
+                    onChange={(e) => setBatchSearch(e.target.value)}
+                    style={{ borderLeft: "none", boxShadow: "none" }}
+                  />
+                </div>
+              </div>
+
+              <div className="d-flex justify-content-between all_search_input">
+                <div
+                  className="custom_date_wrapper review_batch_seach"
+                  style={{ maxWidth: "240px" }}
+                >
+                  <DatePicker
+                    ref={dateInputRef}
+                    selected={selectedDate}
+                    onChange={(date) => setSelectedDate(date)}
+                    dateFormat="dd-MM-yyyy"
+                    placeholderText="dd-mm-yyyy"
+                    className="custom-date-input"
+                  />
+                  <span className="calendar-icon" onClick={handleIconClick}>
+                    <FaRegCalendarAlt />
+                  </span>
+                </div>
+                <div
+                  className="input-group review_batch_status"
+                  style={{ maxWidth: "240px" }}
+                >
+                  <select
+                    className="form-select bg-light custom-status-dropdown"
+                    value={selectedStatus}
+                    onChange={(e) => setSelectedStatus(e.target.value)}
+                  >
+                    <option value="">Status</option>
+                    <option value="Approved">Approved</option>
+                    <option value="Rejected">Rejected</option>
+                    <option value="Hold">Hold</option>
+                    <option value="All">All</option>
+                  </select>
+                </div>
               </div>
             </div>
-          </div>
-          {loading ? (
-            <div
-              className="d-flex justify-content-center align-items-center"
-              style={{ height: "200px" }}
-            >
-              <Circles
-                height="60"
-                width="60"
-                color="#FE850E"
-                ariaLabel="circles-loading"
-                visible={true}
-              />
-            </div>
-          ) : (
-            <div className="table-responsive mt-3">
-              <Table className="bg-white text-center border-0 network_table" style={{ minWidth: "1200px" }}>
-                <thead style={{ backgroundColor: "#EEF4FF", position: "sticky", top: 0, zIndex: 1 }}>
-                  <tr className="text-dark fw-semibold table_th_border">
-                    <th className="border-start">View</th>
-                    <th style={{ whiteSpace: "nowrap" }}>Batch No</th>
-                    <th style={{ whiteSpace: "nowrap" }}>Vendor Name</th>
-                    <th style={{ whiteSpace: "nowrap" }}>Batch Creation Date</th>
-                    <th style={{ whiteSpace: "nowrap" }}>Batch Closure Date</th>
-                    <th style={{ whiteSpace: "nowrap" }}>Invoice No</th>
-                    <th style={{ whiteSpace: "nowrap" }}>Invoice Date</th>
-                    <th style={{ whiteSpace: "nowrap" }}>Invoice Amount</th>
-                    {/* <th style={{ whiteSpace: "nowrap" }}>Gross Amount</th> */}
-                    <th style={{ whiteSpace: "nowrap" }}>Total Service Charge</th>
-                    <th style={{ whiteSpace: "nowrap" }}>Total Repair Charge</th>
-                    <th style={{ whiteSpace: "nowrap" }}>Final Amount</th>
-                    <th style={{ whiteSpace: "nowrap" }}>Remarks</th>
-                    <th style={{ whiteSpace: "nowrap" }}>Invoice Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {currentInvoices.map((invoice, index) => (
-                    <tr
-                      key={index}
-                      className="text-center border-bottom network_td_item"
-                    >
-                      <td className="border-start align-middle">
-                        <FaEye
-                          className="text-purple review_fa_eye"
-                          style={{ cursor: "pointer" }}
-                          onClick={() => {
-                            console.log("Clicked invoice row:", invoice);
-                            const selectedBatchData = {
-                              aaNo: invoice.aaNo || "",
-                              imeiNo: invoice.imeiNo || "",
-                              creationDate:
-                                invoice.creationDate ||
-                                new Date().toLocaleDateString("en-GB"),
-                              closureDate: invoice.closureDate || "",
-                              customerName: invoice.customerName || "",
-                              serviceType: invoice.serviceType || "",
-                              brand: invoice.brand || "",
-                              makeModel: invoice.makeModel || "",
-                              repairCharges: invoice.repairCharges || "",
-                              serviceCharges: invoice.serviceCharges || "",
-                              total: invoice.total || "",
-                              invoiceStatus: invoice.invoiceStatus || "",
-                              sellingPartner: invoice.sellingPartner || "",
-                              batchNo: invoice.batchNo || "",
-                              vendorName: invoice.vendorName || "",
-                              remarks: invoice.remarks || "",
-                            };
-                            navigate("/ReviewBatchPage", {
-                              state: {
-                                selectedBatchData,
-                                vendorId,
-                                isExcelUpload,
-                              },
-                            });
-                          }}
-                        />
-                      </td>
-                      <td className="align-middle">{invoice.batchNo ?? "--"}</td>
-                      <td className="align-middle">{invoice.vendorName ?? "--"}</td>
-                      <td className="align-middle">
-                        {invoice.batchCreationDate
-                          ? new Date(invoice.batchCreationDate).toLocaleDateString("en-GB")
-                          : "--"}
-                      </td>
-                      <td className="align-middle">
-                        {invoice.batchClosureDate
-                          ? new Date(invoice.batchClosureDate).toLocaleDateString("en-GB")
-                          : "--"}
-                      </td>
-                      <td className="align-middle">{invoice.invoiceNumber ?? "--"}</td>
-                      <td className="align-middle">
-                        {invoice.invoiceDate
-                          ? new Date(invoice.invoiceDate).toLocaleDateString("en-GB")
-                          : "--"}
-                      </td>
-                      <td className="align-middle">{invoice.invoiceAmount ?? "--"}</td>
-                      {/* <td className="align-middle">
+            {loading ? (
+              <div
+                className="d-flex justify-content-center align-items-center"
+                style={{ height: "200px" }}
+              >
+                <Circles
+                  height="60"
+                  width="60"
+                  color="#FE850E"
+                  ariaLabel="circles-loading"
+                  visible={true}
+                />
+              </div>
+            ) : (
+              <div className="table-responsive mt-3">
+                <Table
+                  className="bg-white text-center border-0 network_table"
+                  style={{ minWidth: "1200px" }}
+                >
+                  <thead
+                    style={{
+                      backgroundColor: "#EEF4FF",
+                      position: "sticky",
+                      top: 0,
+                      zIndex: 1,
+                    }}
+                  >
+                    <tr className="text-dark fw-semibold table_th_border">
+                      <th className="border-start">View</th>
+                      <th style={{ whiteSpace: "nowrap" }}>Batch No</th>
+                      <th style={{ whiteSpace: "nowrap" }}>Vendor Name</th>
+                      <th style={{ whiteSpace: "nowrap" }}>
+                        Batch Creation Date
+                      </th>
+                      <th style={{ whiteSpace: "nowrap" }}>
+                        Batch Closure Date
+                      </th>
+                      <th style={{ whiteSpace: "nowrap" }}>Invoice No</th>
+                      <th style={{ whiteSpace: "nowrap" }}>Invoice Date</th>
+                      <th style={{ whiteSpace: "nowrap" }}>Invoice Amount</th>
+                      <th style={{ whiteSpace: "nowrap" }}>
+                        Total Repair Charge
+                      </th>
+                      <th style={{ whiteSpace: "nowrap" }}>
+                        Total Service Charge
+                      </th>
+                      <th style={{ whiteSpace: "nowrap" }}>Final Amount</th>
+                      {/* <th style={{ whiteSpace: "nowrap" }}>Invoice</th> */}
+                      <th style={{ whiteSpace: "nowrap" }}>Remarks</th>
+                      <th style={{ whiteSpace: "nowrap" }}>Invoice Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {currentInvoices.map((invoice, index) => (
+                      <tr
+                        key={index}
+                        className="text-center border-bottom network_td_item"
+                      >
+                        <td className="border-start align-middle">
+                          <FaEye
+                            className="text-purple review_fa_eye"
+                            style={{ cursor: "pointer" }}
+                            onClick={() => {
+                              console.log("Clicked invoice row:", invoice);
+                              const selectedBatchData = {
+                                aaNo: invoice.aaNo || "",
+                                imeiNo: invoice.imeiNo || "",
+                                creationDate:
+                                  invoice.creationDate ||
+                                  new Date().toLocaleDateString("en-GB"),
+                                closureDate: invoice.closureDate || "",
+                                customerName: invoice.customerName || "",
+                                serviceType: invoice.serviceType || "",
+                                brand: invoice.brand || "",
+                                makeModel: invoice.makeModel || "",
+                                repairCharges: invoice.repairCharges || "",
+                                serviceCharges: invoice.serviceCharges || "",
+                                total: invoice.total || "",
+                                invoiceStatus: invoice.invoiceStatus || "",
+                                sellingPartner: invoice.sellingPartner || "",
+                                batchNo: invoice.batchNo || "",
+                                vendorName: invoice.vendorName || "",
+                                remarks: invoice.remarks || "",
+                              };
+                              navigate("/ReviewBatchPage", {
+                                state: {
+                                  selectedBatchData,
+                                  vendorId,
+                                  isExcelUpload,
+                                },
+                              });
+                            }}
+                          />
+                        </td>
+                        <td className="align-middle">
+                          {invoice.batchNo ?? "--"}
+                        </td>
+                        <td className="align-middle">
+                          {invoice.vendorName ?? "--"}
+                        </td>
+                        <td className="align-middle">
+                          {invoice.createdDate
+                            ? new Date(invoice.createdDate).toLocaleDateString(
+                                "en-GB"
+                              )
+                            : "--"}
+                        </td>
+                        <td className="align-middle">
+                          {invoice.batchClosureDate
+                            ? new Date(
+                                invoice.batchClosureDate
+                              ).toLocaleDateString("en-GB")
+                            : "--"}
+                        </td>
+                        <td className="align-middle">
+                          {invoice.invoiceNo ?? "--"}
+                        </td>
+                        <td className="align-middle">
+                          {invoice.invoiceDate
+                            ? new Date(invoice.invoiceDate).toLocaleDateString(
+                                "en-GB"
+                              )
+                            : "--"}
+                        </td>
+                        <td className="align-middle">
+                          {invoice.invoiceAmount ?? "--"}
+                        </td>
+                        {/* <td className="align-middle">
                         ₹{invoice.grossAmount ? parseFloat(invoice.grossAmount).toLocaleString() : "--"}
                       </td> */}
-                      <td className="align-middle">
-                        ₹{invoice.totalServiceCharges ?? "0"}
-                      </td>
-                      <td className="align-middle">
-                        ₹{invoice.totalRepairCharges ?? "0"}
-                      </td>
-                      <td className="align-middle">{invoice.finalAmount ?? "--"}</td>
+                        <td className="align-middle">
+                          ₹{invoice.totalRepairCharges ?? "0"}
+                        </td>
+                        <td className="align-middle">
+                          ₹{invoice.totalServiceCharges ?? "0"}
+                        </td>
 
-                      <td className="align-middle">{invoice.remarks ?? "No Remarks"}</td>
-                      <td className="align-middle">
-                        <Chip
-                          label={invoice.invoiceStatus || "Unknown"}
-                          variant="outlined"
-                          sx={{
-                            color: "#31C48D",
-                          }}
-                        />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
+                        <td className="align-middle">
+                          {invoice.finalAmount ?? "--"}
+                        </td>
+                        {/* <td className="align-middle">
+                          {invoice.invoice ? (
+                            <a
+                              href={invoice.invoice}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              download
+                            >
+                              <img
+                                src={pdfimage}
+                                alt="Download PDF"
+                                style={{ height: "24px", cursor: "pointer" }}
+                              />
+                            </a>
+                          ) : (
+                            "--"
+                          )}
+                        </td> */}
+                        <td className="align-middle">
+                          {invoice.remarks ?? "No Remarks"}
+                        </td>
+                        <td className="align-middle">
+                          <Chip
+                            label={invoice.invoiceStatus || "Unknown"}
+                            variant="outlined"
+                            sx={{
+                              color: "#31C48D",
+                            }}
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
+              </div>
+            )}
+            <div className="d-flex justify-content-between align-items-center pagination-container network_previous">
+              <button
+                className="network_previous"
+                onClick={handlePrevious}
+                disabled={currentPage === 1}
+              >
+                Previous
+              </button>
+              <span className="page-info">
+                Page {currentPage} of {totalPages}
+              </span>
+              <button
+                className="network_previous"
+                onClick={handleNext}
+                disabled={currentPage === totalPages}
+              >
+                Next
+              </button>
             </div>
-          )}
-          <div className="d-flex justify-content-between align-items-center pagination-container network_previous">
-            <button
-              className="network_previous"
-              onClick={handlePrevious}
-              disabled={currentPage === 1}
-            >
-              Previous
-            </button>
-            <span className="page-info">
-              Page {currentPage} of {totalPages}
-            </span>
-            <button
-              className="network_previous"
-              onClick={handleNext}
-              disabled={currentPage === totalPages}
-            >
-              Next
-            </button>
           </div>
         </div>
+        <Search_vendor_popup
+          show={showHoldModal}
+          handleClose={() => setShowHoldModal(false)}
+          vendors={vendorList}
+        />
+        <style jsx>{`
+          .table-container {
+            overflow-x: auto;
+            width: 100%;
+          }
+          .network_table {
+            min-width: 1200px;
+          }
+          .network_table th,
+          .network_table td {
+            padding: 8px;
+            vertical-align: middle;
+            white-space: nowrap;
+          }
+          .pagination-container {
+            margin-top: 1rem;
+          }
+          .page-info {
+            font-weight: 500;
+          }
+        `}</style>
       </div>
-      <Search_vendor_popup
-        show={showHoldModal}
-        handleClose={() => setShowHoldModal(false)}
-        vendors={vendorList}
-      />
-      <style jsx>{`
-        .table-container {
-          overflow-x: auto;
-          width: 100%;
-        }
-        .network_table {
-          min-width: 1200px;
-        }
-        .network_table th,
-        .network_table td {
-          padding: 8px;
-          vertical-align: middle;
-          white-space: nowrap;
-        }
-        .pagination-container {
-          margin-top: 1rem;
-        }
-        .page-info {
-          font-weight: 500;
-        }
-      `}</style>
-    </div>
     </div>
   );
 }

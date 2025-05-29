@@ -324,6 +324,32 @@ export const GetAllApprovalBatchDatafromSubmit = async () => {
     throw error;
   }
 };
+export const GetNetworkRejectData = async () => {
+  try {
+    const response = await axios.get(`${BASE_URL}/GetRejectedInvoiceData`, {
+      headers: {
+        Accept: "text/plain",
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching batch invoice data:", error);
+    throw error;
+  }
+};
+export const   GetPartialApprovedInvoiceData = async () => {
+  try {
+    const response = await axios.get(`${BASE_URL}/GetPartialApprovedInvoiceData`, {
+      headers: {
+        Accept: "text/plain",
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching batch invoice data:", error);
+    throw error;
+  }
+};
 
 /*********************************************************
  * Function to GetAllApprovalBatchDatafromSubmit

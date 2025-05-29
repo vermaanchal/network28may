@@ -1,275 +1,243 @@
-import React, { useState, useRef, useEffect } from "react";
-import Header from "../Header/header";
-import { IoFilterSharp } from "react-icons/io5";
-import { FaFilePdf } from "react-icons/fa";
+import React, { useState, useEffect, useRef } from "react";
+import { FaFilePdf, FaEye, FaSearch, FaRegCalendarAlt } from "react-icons/fa";
 import { Dropdown, Table, Button } from "react-bootstrap";
-import { FaChevronDown, FaEye } from "react-icons/fa";
-import { FaSearch } from "react-icons/fa";
+import { FaChevronDown } from "react-icons/fa";
+import {
+  GetNetworkRejectData,
+  updateInvoiceStatusNetworkForApproved,
+} from "../../api/api";
+import { toast, ToastContainer } from "react-toastify";
+import pdfimage from "../images/pdf_downlaod.png";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { FaRegCalendarAlt } from "react-icons/fa";
-import { FaPlus } from "react-icons/fa";
-import { FaCirclePlus } from "react-icons/fa6";
-// import Search_vendor_popup from "./search_vendor_popup";
-import pdf_img from "../images/pdf_downlaod.png";
-import random_pdf from "../images/dummy-pdf_2.pdf";
-import { FormControl, Select, MenuItem, InputLabel } from "@mui/material";
-import Chip from "@mui/material/Chip";
-import {
-  fetchBatchInvoiceData,
-  updateBatchInvoiceStatus,
-  updateBatchFinanceStatus,
-} from "../../api/api";
-import { Circles } from "react-loader-spinner";
-import "react-toastify/dist/ReactToastify.css";
-import { toast, ToastContainer } from "react-toastify";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 function GetNetworkReject() {
   const navigate = useNavigate();
-  const { state } = useLocation();
-  const { vendorId = "", isExcelUpload = false } = state || {}; // Define vendorId and isExcelUpload from navigation state
-
-  const [invoicesData, setInvoicesData] = useState([]);
   const [vendorSearch, setVendorSearch] = useState("");
-  const [srnSearch, setSrnSearch] = useState("");
-  const [searchInvoiceNo, setSeachInvoiceNo] = useState("");
+  const [searchInvoiceNo, setSearchInvoiceNo] = useState("");
   const [batchSearch, setBatchSearch] = useState("");
   const [selectedDate, setSelectedDate] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [selectedStatus, setSelectedStatus] = useState("");
-  const [showHoldModal, setShowHoldModal] = useState(false);
-  const itemsPerPage = 8;
   const dateInputRef = useRef(null);
-  const [loading, setLoading] = useState(false);
-
-  const vendorList = Array.isArray(invoicesData)
-    ? invoicesData.map(({ vendorName, srnNo }) => ({ vendorName, srnNo }))
-    : [];
+  const [invoices, setInvoices] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const handleIconClick = () => {
     dateInputRef.current?.setFocus();
   };
 
-  const handleNext = () => {
-    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+  // Fetch API data on component mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await GetNetworkRejectData();
+        console.log("API Response reject data :", response);
+        if (response?.dataItems) {
+          setInvoices(response.dataItems);
+        } else {
+          toast.error("No data received from API");
+        }
+      } catch (error) {
+        console.error("Failed to fetch approval batch data:", error);
+        toast.error("Failed to fetch data");
+      }
+    };
+    fetchData();
+  }, []);
+
+  // Format date to DD-MM-YYYY
+  const formatDate = (dateTimeStr) => {
+    // Handle null, undefined, or empty string
+    if (!dateTimeStr || typeof dateTimeStr !== "string") {
+      console.warn("Invalid date input:", dateTimeStr);
+      return "--";
+    }
+
+    // Case 1: Already in DD/MM/YYYY or DD-MM-YYYY
+    if (/^\d{2}[/-]\d{2}[/-]\d{4}$/.test(dateTimeStr)) {
+      return dateTimeStr.replace(/\//g, "-");
+    }
+
+    // Case 2: YYYY-MM-DD format
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateTimeStr)) {
+      try {
+        const date = new Date(dateTimeStr);
+        if (isNaN(date.getTime())) {
+          console.warn("Invalid YYYY-MM-DD date:", dateTimeStr);
+          return "--";
+        }
+        return date.toLocaleDateString("en-GB", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+        });
+      } catch (e) {
+        console.warn("Error parsing YYYY-MM-DD date:", dateTimeStr, e);
+        return "--";
+      }
+    }
+
+    // Case 3: Custom format like "2025 15:37:37-04-21"
+    if (/\d{4}\s+\d{2}:\d{2}:\d{2}-\d{2}-\d{2}/.test(dateTimeStr)) {
+      try {
+        const [year, timeAndDate] = dateTimeStr.split(" ");
+        const [, , dayMonth] = timeAndDate.split(":");
+        const [, month, day] = dayMonth.split("-");
+        const formattedDate = `${day}-${month}-${year}`;
+        // Validate the constructed date
+        const date = new Date(`${year}-${month}-${day}`);
+        if (isNaN(date.getTime())) {
+          console.warn("Invalid custom format date:", dateTimeStr);
+          return "--";
+        }
+        return formattedDate;
+      } catch (e) {
+        console.warn("Error parsing custom format date:", dateTimeStr, e);
+        return "--";
+      }
+    }
+
+    // Fallback for any other format: Try parsing with Date
+    try {
+      const date = new Date(dateTimeStr);
+      if (isNaN(date.getTime())) {
+        console.warn("Unrecognized date format:", dateTimeStr);
+        return "--";
+      }
+      return date.toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      });
+    } catch (e) {
+      console.warn("Error parsing date with Date object:", dateTimeStr, e);
+      return "--";
+    }
   };
 
-  const handlePrevious = () => {
-    if (currentPage > 1) setCurrentPage(currentPage - 1);
+  // Format Date object to DD-MM-YYYY
+  const formatDateObject = (date) => {
+    if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
+      return "";
+    }
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
+    return `${day}-${month}-${year}`;
   };
 
-  const filteredInvoices = Array.isArray(invoicesData)
-    ? invoicesData.filter((inv) => {
-        const creationDateObj = inv.batchCreationDate
-          ? new Date(inv.batchCreationDate)
-          : null;
+  // Filter invoices based on search inputs
+  const filteredInvoices = invoices.filter((invoice) => {
+    const vendorMatch = vendorSearch
+      ? invoice.vendorName?.toLowerCase().includes(vendorSearch.toLowerCase())
+      : true;
+    const invoiceNoMatch = searchInvoiceNo
+      ? invoice.invoiceNo?.toLowerCase().includes(searchInvoiceNo.toLowerCase())
+      : true;
+    const batchMatch = batchSearch
+      ? String(invoice.batchNo).includes(batchSearch)
+      : true;
+    const dateMatch = selectedDate
+      ? formatDate(invoice.creationDate) === formatDateObject(selectedDate)
+      : true;
+    return vendorMatch && invoiceNoMatch && batchMatch && dateMatch;
+  });
 
-        const vendorName = inv.vendorName?.toString().toLowerCase() || "";
-        const srnNo = inv.srnNo?.toString().toLowerCase() || "";
-        const batchNo = inv.batchNo?.toString().toLowerCase() || "";
-        const financeStatus = inv.financeStatus?.toString().toLowerCase() || "";
-        const invoiceNumber = inv.invoiceNumber?.toString().toLowerCase() || "";
-
-        const vendorMatch = vendorName.includes(vendorSearch.toLowerCase());
-        const srnMatch = srnNo.includes(srnSearch.toLowerCase());
-        const batchMatch = batchNo.includes(batchSearch.toLowerCase());
-        const invoiceNoMatch = invoiceNumber.includes(
-          searchInvoiceNo.toLowerCase()
-        );
-
-        const dateMatch = selectedDate
-          ? creationDateObj &&
-            creationDateObj.toDateString() === selectedDate.toDateString()
-          : true;
-
-        const statusMatch =
-          selectedStatus && selectedStatus !== "All"
-            ? financeStatus === selectedStatus.toLowerCase()
-            : true;
-
-        return (
-          vendorMatch &&
-          srnMatch &&
-          batchMatch &&
-          dateMatch &&
-          statusMatch &&
-          invoiceNoMatch
-        );
-      })
-    : [];
-
+  // Reset currentPage when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [
-    vendorSearch,
-    srnSearch,
-    batchSearch,
-    selectedDate,
-    selectedStatus,
-    searchInvoiceNo,
-  ]);
+  }, [vendorSearch, searchInvoiceNo, batchSearch, selectedDate]);
 
-  const totalPages = Math.ceil(filteredInvoices.length / itemsPerPage);
+  // Pagination
+  const itemsPerPage = 8;
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentInvoices = filteredInvoices.slice(
     indexOfFirstItem,
     indexOfLastItem
   );
+  const totalPages = Math.ceil(filteredInvoices.length / itemsPerPage);
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage((prev) => prev + 1);
+    }
+  };
+
+  const handlePrevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage((prev) => prev - 1);
+    }
+  };
+
+  const getStatusBadgeClass = (status) => {
+    switch (status?.toLowerCase()) {
+      case "batch":
+      case "hold":
+        return "batch_badge_orange";
+      case "approved":
+        return "approved_badge_green";
+      case "submitted":
+        return "submitted_badge_red";
+      case "invoice":
+        return "invoice_badge_blue";
+      case "rejected":
+        return "rejected_badge_red";
+      case "paid":
+        return "paid_badge_red";
+      case "query":
+        return "query_badge_red";
+      case "partial payment":
+        return "partial_badge_red";
+      case "partial approved":
+        return "partial_approved_badge_red";
+      case "bank":
+        return "bank_badge";
+      default:
+        return "badge-gray";
+    }
+  };
+
+  const invoiceOptions = ["Approved", "Rejected", "Partial Approved"];
 
   const handleInvoiceStatusChange = async (index, newStatus) => {
     const globalIndex = indexOfFirstItem + index;
-    const selectedInvoice = invoicesData[globalIndex];
+    const selectedInvoice = filteredInvoices[globalIndex];
     const batchNo = selectedInvoice?.batchNo;
 
     try {
-      const reason = newStatus === "Rejected" ? "Some rejection reason" : "";
-      const response = await updateBatchInvoiceStatus({
+      const response = await updateInvoiceStatusNetworkForApproved({
         batchNo,
-        status: newStatus,
-        reason,
+        invoiceStatus: newStatus,
       });
-
-      setInvoicesData((prev) =>
-        prev.map((item, i) =>
-          i === globalIndex
+      setInvoices((prev) =>
+        prev.map((item) =>
+          item.batchNo === batchNo
             ? {
                 ...item,
                 invoiceStatus: newStatus,
-                financeStatus: newStatus === "Approved" ? "Submitted" : "",
+                financeStatus:
+                  newStatus === "Approved" ? "Submitted" : item.financeStatus,
               }
             : item
         )
       );
-
-      toast.success("Invoice status updated successfully!", {
-        position: "top-right",
-        autoClose: 3000,
-      });
+      toast.success("Invoice status updated successfully!");
     } catch (err) {
-      toast.error("Failed to update invoice status.", {
-        position: "top-right",
-        autoClose: 3000,
-      });
-    }
-  };
-
-  const handleFinanceStatusChange = async (index, newStatus) => {
-    const globalIndex = indexOfFirstItem + index;
-    const selectedInvoice = invoicesData[globalIndex];
-    const batchNo = selectedInvoice?.batchNo;
-
-    try {
-      const reason = newStatus === "Rejected" ? "Finance rejected" : "";
-      const response = await updateBatchFinanceStatus({
-        batchNo,
-        status: newStatus,
-        reason,
-      });
-
-      setInvoicesData((prev) =>
-        prev.map((item, i) =>
-          i === globalIndex
-            ? {
-                ...item,
-                financeStatus: newStatus,
-                invoiceStatus:
-                  newStatus !== "Approved" ? "Hold" : item.invoiceStatus,
-              }
-            : item
-        )
-      );
-
-      toast.success("Finance status updated successfully!", {
-        position: "top-right",
-        autoClose: 3000,
-      });
-    } catch (err) {
-      toast.error("Failed to update finance status.", {
-        position: "top-right",
-        autoClose: 3000,
-      });
-    }
-  };
-
-  useEffect(() => {
-    const getData = async () => {
-      setLoading(true);
-      try {
-        const data = await fetchBatchInvoiceData();
-        console.log("Fetched invoice data:", data);
-        if (Array.isArray(data.dataItems)) {
-          setInvoicesData(data.dataItems);
-        } else {
-          setInvoicesData([]);
-        }
-      } catch (err) {
-        console.error("Failed to load invoice data", err);
-        setInvoicesData([]);
-        toast.error("Failed to load invoice data.", {
-          position: "top-right",
-          autoClose: 3000,
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    getData();
-  }, []);
-
-  const totalGrossAmount = invoicesData.reduce(
-    (total, invoice) => total + (parseFloat(invoice.grossAmount) || 0),
-    0
-  );
-
-  const fileInputRef = useRef(null);
-
-  const handleUploadClick = () => {
-    fileInputRef.current.click();
-  };
-
-  const handleFileChange = (event) => {
-    const file = event.target.files[0];
-    if (file && file.type === "application/pdf") {
-      console.log("Selected PDF:", file.name);
-    } else {
-      toast.error("Please select a valid PDF file.", {
-        position: "top-right",
-        autoClose: 3000,
-      });
+      console.error("Failed to update invoice status:", err);
+      toast.error("Failed to update invoice status");
     }
   };
 
   return (
     <div>
-      <Header />
       <ToastContainer />
       <div className="container mt-4">
         <div className="netwrok_table_main_content">
-          <div
-            className="table-container mt-3"
-            style={{ overflowX: "auto", width: "100%" }}
-          >
-            <div className="d-flex justify-content-between network_filter_div">
-              <h5 className="fw-bold m-0">Review Batches</h5>
-              <button
-                className="btn btn-primary d-flex align-items-center"
-                style={{
-                  backgroundColor: "#8000d7",
-                  border: "none",
-                  padding: "10px 20px",
-                  borderRadius: "8px",
-                  fontWeight: "bold",
-                  fontSize: "16px",
-                }}
-                onClick={() => setShowHoldModal(true)}
-              >
-                <FaCirclePlus className="me-2" />
-                Create Batch
-              </button>
-            </div>
+          <div className="d-flex justify-content-between align-items-center network_filter_div">
+            <h5 className="fw-bold m-0">Approval Data</h5>
+          </div>
+          <div className="table-responsive mt-3">
             <div className="d-flex justify-content-between network_filter_div">
               <div className="d-flex justify-content-between align-items-center all_search_input">
                 <div
@@ -304,7 +272,7 @@ function GetNetworkReject() {
                     className="form-control bg-light border-start-0"
                     placeholder="Search by Invoice No"
                     value={searchInvoiceNo}
-                    onChange={(e) => setSeachInvoiceNo(e.target.value)}
+                    onChange={(e) => setSearchInvoiceNo(e.target.value)}
                     style={{ borderLeft: "none", boxShadow: "none" }}
                   />
                 </div>
@@ -318,7 +286,7 @@ function GetNetworkReject() {
                     </span>
                   </div>
                   <input
-                    type="number"
+                    type="text"
                     className="form-control bg-light border-start-0"
                     placeholder="Search by Batch No"
                     value={batchSearch}
@@ -327,7 +295,6 @@ function GetNetworkReject() {
                   />
                 </div>
               </div>
-
               <div className="d-flex justify-content-between all_search_input">
                 <div
                   className="custom_date_wrapper review_batch_seach"
@@ -345,245 +312,170 @@ function GetNetworkReject() {
                     <FaRegCalendarAlt />
                   </span>
                 </div>
-                <div
-                  className="input-group review_batch_status"
-                  style={{ maxWidth: "240px" }}
-                >
-                  <select
-                    className="form-select bg-light custom-status-dropdown"
-                    value={selectedStatus}
-                    onChange={(e) => setSelectedStatus(e.target.value)}
-                  >
-                    <option value="">Status</option>
-                    <option value="Approved">Approved</option>
-                    <option value="Rejected">Rejected</option>
-                    <option value="Hold">Hold</option>
-                    <option value="All">All</option>
-                  </select>
-                </div>
               </div>
             </div>
-            {loading ? (
-              <div
-                className="d-flex justify-content-center align-items-center"
-                style={{ height: "200px" }}
-              >
-                <Circles
-                  height="60"
-                  width="60"
-                  color="#FE850E"
-                  ariaLabel="circles-loading"
-                  visible={true}
-                />
-              </div>
-            ) : (
-              <div className="table-responsive mt-3">
-                <Table
-                  className="bg-white text-center border-0 network_table"
-                  style={{ minWidth: "1200px" }}
-                >
-                  <thead
-                    style={{
-                      backgroundColor: "#EEF4FF",
-                      position: "sticky",
-                      top: 0,
-                      zIndex: 1,
-                    }}
-                  >
-                    <tr className="text-dark fw-semibold table_th_border">
-                      <th className="border-start">View</th>
-                      <th style={{ whiteSpace: "nowrap" }}>Batch No</th>
-                      <th style={{ whiteSpace: "nowrap" }}>Vendor Name</th>
-                      <th style={{ whiteSpace: "nowrap" }}>
-                        Batch Creation Date
-                      </th>
-                      <th style={{ whiteSpace: "nowrap" }}>
-                        Batch Closure Date
-                      </th>
-                      <th style={{ whiteSpace: "nowrap" }}>Invoice No</th>
-                      <th style={{ whiteSpace: "nowrap" }}>Invoice Date</th>
-                      <th style={{ whiteSpace: "nowrap" }}>Invoice Amount</th>
-                      <th style={{ whiteSpace: "nowrap" }}>Final Amount</th>
-                    
-                      {/* <th style={{ whiteSpace: "nowrap" }}> Repare Charge</th> */}
-                      <th style={{ whiteSpace: "nowrap" }}>
-                        Total Repair Charge
-                      </th>
-                      {/* <th style={{ whiteSpace: "nowrap" }}>Service Charge</th> */}
-                      <th style={{ whiteSpace: "nowrap" }}>
-                        Total Service Charge
-                      </th>
-                      <th style={{ whiteSpace: "nowrap" }}>Remarks</th>
-                      <th style={{ whiteSpace: "nowrap" }}>Invoice Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {currentInvoices.map((invoice, index) => (
-                      <tr
-                        key={index}
-                        className="text-center border-bottom network_td_item"
-                      >
-                        <td className="border-start align-middle">
-                          <FaEye
-                            className="text-purple review_fa_eye"
-                            style={{ cursor: "pointer" }}
-                            onClick={() => {
-                              console.log("Clicked invoice row:", invoice);
-                              const selectedBatchData = {
-                                aaNo: invoice.aaNo || "",
-                                imeiNo: invoice.imeiNo || "",
-                                creationDate:
-                                  invoice.creationDate ||
-                                  new Date().toLocaleDateString("en-GB"),
-                                closureDate: invoice.closureDate || "",
-                                customerName: invoice.customerName || "",
-                                serviceType: invoice.serviceType || "",
-                                brand: invoice.brand || "",
-                                makeModel: invoice.makeModel || "",
-                                repairCharges: invoice.repairCharges || "",
-                                total: invoice.total || "",
-                                invoiceStatus: invoice.invoiceStatus || "",
-                                sellingPartner: invoice.sellingPartner || "",
-                                batchNo: invoice.batchNo || "",
-                                vendorName: invoice.vendorName || "",
-                                remarks: invoice.remarks || "",
-                              };
-                              navigate("/ReviewBatchPage", {
-                                state: {
-                                  selectedBatchData,
-                                  vendorId,
-                                  isExcelUpload,
-                                },
-                              });
-                            }}
-                          />
-                        </td>
-                        <td className="align-middle">
-                          {invoice.batchNo ?? "--"}
-                        </td>
-                        <td className="align-middle">
-                          {invoice.vendorName ?? "--"}
-                        </td>
-                        <td className="align-middle">
-                          {invoice.createdDate
-                            ? new Date(
-                                invoice.createdDate
-                              ).toLocaleDateString("en-GB")
-                            : "--"}
-                        </td>
-                        <td className="align-middle">
-                          {invoice.closureDate
-                            ? new Date(
-                                invoice.closureDate
-                              ).toLocaleDateString("en-GB")
-                            : "--"}
-                        </td>
-                        <td className="align-middle">
-                          {invoice.invoiceNo ?? "--"}
-                        </td>
-                        <td className="align-middle">
-                          {invoice.invoiceDate
-                            ? new Date(invoice.invoiceDate).toLocaleDateString(
-                                "en-GB"
+            <Table className="bg-white text-center border-0 network_table">
+              <thead style={{ backgroundColor: "#EEF4FF" }}>
+                <tr className="text-dark fw-semibold table_th_border">
+                  <th className="border-start" style={{ whiteSpace: "nowrap" }}>
+                    View
+                  </th>
+                  <th style={{ whiteSpace: "nowrap" }}>Batch no</th>
+                  <th style={{ whiteSpace: "nowrap" }}>Vendor Name</th>
+                  <th style={{ whiteSpace: "nowrap" }}>Case Count</th>
+                  <th style={{ whiteSpace: "nowrap" }}>Creation Date</th>
+                  <th style={{ whiteSpace: "nowrap" }}>Closure Date</th>
+                  <th style={{ whiteSpace: "nowrap" }}>Total Repair Charges</th>
+                  <th style={{ whiteSpace: "nowrap" }}>
+                    Total Service Charges
+                  </th>
+                  <th style={{ whiteSpace: "nowrap" }}>Total</th>
+                  <th style={{ whiteSpace: "nowrap" }}>Remarks</th>
+                  <th>Invoice</th>
+                  <th style={{ whiteSpace: "nowrap" }}>Invoice Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {currentInvoices.length > 0 ? (
+                  currentInvoices.map((invoice, index) => (
+                    <tr
+                      key={invoice.id || `${invoice.batchNo}-${index}`}
+                      className="text-center border-bottom network_td_item"
+                    >
+                      <td className="border-start align-middle cursor-pointer">
+                        <FaEye
+                          className="text-purple review_fa_eye"
+                          onClick={() => {
+                            navigate("/approvalBatchPage", {
+                              state: { batchData: invoice },
+                            });
+                          }}
+                        />
+                      </td>
+                      <td className="align-middle">
+                        {invoice.batchNo || "--"}
+                      </td>
+                      <td className="align-middle">
+                        {invoice.vendorName || "--"}
+                      </td>
+                      <td className="align-middle">
+                        {invoice.caseCount || "--"}
+                      </td>
+                      <td className="align-middle">
+                        {formatDate(invoice.creationDate)}
+                      </td>
+                      <td className="align-middle">
+                        {formatDate(invoice.closureDate) || "--"}
+                      </td>
+                      <td className="align-middle">
+                        {invoice.totalRepairCharges || "--"}
+                      </td>
+                      <td className="align-middle">
+                        {invoice.totalServiceCharges || "--"}
+                      </td>
+                      <td className="align-middle">
+                        {invoice.total
+                          ? `${invoice.total
+                              .split(",")
+                              .map((val) => parseFloat(val.trim()))
+                              .reduce(
+                                (acc, num) => acc + (isNaN(num) ? 0 : num),
+                                0
                               )
-                            : "--"}
-                        </td>
-                        <td className="align-middle">
-                          {invoice.invoiceAmount ?? "--"}
-                        </td>
-                        <td className="align-middle">
-                          {invoice.finalAmount ?? "--"}
-                        </td>
-                        {/* <td className="align-middle">
-                        ₹{invoice.repairCharges }
-                      </td> */}
-                        {/* <td className="align-middle">
-                          ₹
-                          {invoice.repairCharges
-                            .split(",")
-                            .map((val) => parseFloat(val.trim()))
-                            .reduce((acc, curr) => acc + curr, 0)
-                            .toFixed(2)}
-                        </td> */}
-
-                        <td className="align-middle">
-                          ₹{invoice.totalRepairCharges ?? "0"}
-                        </td>
-                        {/* <td className="align-middle">
-                          ₹{invoice.serviceCharges ?? "0"}
-                        </td> */}
-                        <td className="align-middle">
-                          ₹{invoice.totalServiceCharges ?? "0"}
-                        </td>
-                        <td className="align-middle">
-                          {invoice.remarks ?? "No Remarks"}
-                        </td>
-                        <td className="align-middle">
-                          <Chip
-                            label={invoice.invoiceStatus || "Unknown"}
-                            variant="outlined"
-                            sx={{
-                              color: "#31C48D",
-                            }}
-                          />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </Table>
-              </div>
-            )}
-            <div className="d-flex justify-content-between align-items-center pagination-container network_previous">
-              <button
-                className="network_previous"
-                onClick={handlePrevious}
-                disabled={currentPage === 1}
-              >
-                Previous
-              </button>
-              <span className="page-info">
-                Page {currentPage} of {totalPages}
-              </span>
-              <button
-                className="network_previous"
-                onClick={handleNext}
-                disabled={currentPage === totalPages}
-              >
-                Next
-              </button>
-            </div>
+                              .toLocaleString()}`
+                          : "--"}
+                      </td>
+                      <td className="align-middle">
+                        {invoice.remarks || "No remark"}
+                      </td>
+                      <td className="align-middle">
+                        {invoice.invoice ? (
+                          <a
+                            href={invoice.invoice}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            download
+                          >
+                            <img
+                              src={pdfimage}
+                              alt="Download PDF"
+                              style={{ height: "24px", cursor: "pointer" }}
+                            />
+                          </a>
+                        ) : (
+                          "--"
+                        )}
+                      </td>
+                      <td className="align-middle">
+                        {invoice.invoiceStatus !== "Approved" ? (
+                          <Dropdown className="network_table_main">
+                            <Dropdown.Toggle
+                              className={`custom-dropdown-toggle network_table_approve ${getStatusBadgeClass(
+                                invoice.invoiceStatus
+                              )}`}
+                            >
+                              {invoice.invoiceStatus || "Batch"}{" "}
+                              <FaChevronDown className="dropdown-icon" />
+                            </Dropdown.Toggle>
+                            <Dropdown.Menu className="custom-dropdown-menu">
+                              {invoiceOptions.map((status) => (
+                                <Dropdown.Item
+                                  key={status}
+                                  onClick={() =>
+                                    handleInvoiceStatusChange(index, status)
+                                  }
+                                  className="custom-dropdown-item"
+                                >
+                                  {status}
+                                </Dropdown.Item>
+                              ))}
+                            </Dropdown.Menu>
+                          </Dropdown>
+                        ) : (
+                          <span
+                            className={`custom-dropdown-toggle network_table_approve ${getStatusBadgeClass(
+                              invoice.invoiceStatus
+                            )}`}
+                          >
+                            {invoice.invoiceStatus}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="12" className="text-center py-4">
+                      No data available
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </Table>
+          </div>
+          <div className="d-flex justify-content-between align-items-center pagination-container network_previous">
+            <button
+              className="network_previous"
+              onClick={handlePrevPage}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </button>
+            <span className="page-info">
+              Page {currentPage} of {totalPages}
+            </span>
+            <button
+              className="network_previous"
+              onClick={handleNextPage}
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </button>
           </div>
         </div>
-        {/* <Search_vendor_popup
-          show={showHoldModal}
-          handleClose={() => setShowHoldModal(false)}
-          vendors={vendorList}
-        /> */}
-        <style jsx>{`
-          .table-container {
-            overflow-x: auto;
-            width: 100%;
-          }
-          .network_table {
-            min-width: 1200px;
-          }
-          .network_table th,
-          .network_table td {
-            padding: 8px;
-            vertical-align: middle;
-            white-space: nowrap;
-          }
-          .pagination-container {
-            margin-top: 1rem;
-          }
-          .page-info {
-            font-weight: 500;
-          }
-        `}</style>
       </div>
     </div>
   );
 }
 
 export default GetNetworkReject;
-    

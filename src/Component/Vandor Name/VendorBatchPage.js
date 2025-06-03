@@ -457,7 +457,7 @@ const totalServiceCharges = currentInvoices.reduce((total, invoice) => {
       if (uploadedFile) {
         navigate("/approval");
       } else {
-        // navigate("/");
+        navigate("/");
       }
     } catch (error) {
       console.error("Submission failed:", error);

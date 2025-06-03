@@ -503,7 +503,7 @@ function Vendor_name() {
         </div>
       </div>
       {/* <BatchPopup
-        show={showHoldModal}
+        show={showHoldModal} 
         handleClose={() => setShowHoldModal(false)}
         selectedInvoices={selectedInvoices}
       /> */}

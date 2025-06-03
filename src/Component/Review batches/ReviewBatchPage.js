@@ -1,4 +1,6 @@
 
+
+
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Table, Form, Button } from "react-bootstrap";
 import {
@@ -8,6 +10,8 @@ import {
   FaTrash,
   FaUpload,
   FaEdit,
+  FaSave,
+  FaTimes,
 } from "react-icons/fa";
 import Papa from "papaparse";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -21,7 +25,7 @@ const ReviewBatchPage = () => {
   const { selectedBatchData, vendorId, isExcelUpload } = state || {};
 
   const fileInputRef = useRef();
-  const [invoices, setIncidents] = useState([]);
+  const [invoices, setInvoices] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [isGSTApplied, setIsGSTApplied] = useState(true);
   const [apiData, setApiData] = useState([]);
@@ -40,6 +44,8 @@ const ReviewBatchPage = () => {
     invoiceAmount: false,
     caseCount: false,
   });
+  const [editingRow, setEditingRow] = useState(null);
+  const [editValues, setEditValues] = useState({});
 
   const itemsPerPage = 10;
   const totalPages = Math.ceil(invoices.length / itemsPerPage);
@@ -152,7 +158,7 @@ const ReviewBatchPage = () => {
       isChecked: true,
       remarks: splitData("remarks")[i] || "",
     }));
-    setIncidents(invoicesArray);
+    setInvoices(invoicesArray);
   }, [selectedBatchData]);
 
   const normalize = (value) =>
@@ -246,14 +252,14 @@ const ReviewBatchPage = () => {
 
   const handleDelete = (index) => {
     const updatedInvoices = invoices.filter((_, i) => i !== index);
-    setIncidents(updatedInvoices);
+    setInvoices(updatedInvoices);
     if (updatedInvoices.length === 0) {
       navigate("/");
     }
   };
 
   const handleCheckboxChange = (invoiceId) => {
-    setIncidents((prevInvoices) =>
+    setInvoices((prevInvoices) =>
       prevInvoices.map((invoice) =>
         invoice.aA_Number === invoiceId
           ? { ...invoice, isChecked: !invoice.isChecked }
@@ -336,7 +342,6 @@ const ReviewBatchPage = () => {
         return;
       }
 
-      // Validate required fields
       const newErrors = {
         invoiceNo: !invoiceNo.trim(),
         invoiceDate: !invoiceDate,
@@ -350,7 +355,6 @@ const ReviewBatchPage = () => {
         return;
       }
 
-      // Validate invoice amount
       const parsedInvoiceAmount = parseFloat(invoiceAmount);
       if (isNaN(parsedInvoiceAmount) || parsedInvoiceAmount <= 0) {
         setFieldErrors((prev) => ({ ...prev, invoiceAmount: true }));
@@ -366,7 +370,6 @@ const ReviewBatchPage = () => {
         setAmountError("");
       }
 
-      // Validate case count
       const parsedCaseCount = parseInt(caseCount);
       if (isNaN(parsedCaseCount) || parsedCaseCount <= 0) {
         setFieldErrors((prev) => ({ ...prev, caseCount: true }));
@@ -380,7 +383,6 @@ const ReviewBatchPage = () => {
         return;
       }
 
-      // Validate invoice date
       const today = new Date().toISOString().split("T")[0];
       if (invoiceDate > today) {
         setFieldErrors((prev) => ({ ...prev, invoiceDate: true }));
@@ -388,7 +390,6 @@ const ReviewBatchPage = () => {
         return;
       }
 
-      // Check for data mismatches
       let hasMismatch = false;
       for (const invoice of selected) {
         const matchedData = apiData.find(
@@ -420,7 +421,6 @@ const ReviewBatchPage = () => {
         if (!confirmProceed) return;
       }
 
-      // Prepare form data for submission
       const formData = new FormData();
       const extract = (key) =>
         selected.map((item) => item[key] || "").join(", ");
@@ -470,6 +470,57 @@ const ReviewBatchPage = () => {
       console.error("Submission failed:", error);
       alert("Submission failed. Please check console for details.");
     }
+  };
+
+  const handleEdit = (invoice) => {
+    setEditingRow(invoice.aA_Number);
+    setEditValues({
+      serviceCharges: invoice.serviceCharges || "",
+      repairCharges: invoice.repairCharges || "",
+      remarks: invoice.remarks || "",
+    });
+  };
+
+  const handleSaveEdit = (aA_Number) => {
+    const parsedServiceCharges = parseFloat(editValues.serviceCharges);
+    const parsedRepairCharges = parseFloat(editValues.repairCharges);
+    const remarks = editValues.remarks?.trim() || "";
+
+    if (
+      isNaN(parsedServiceCharges) ||
+      parsedServiceCharges < 0 ||
+      isNaN(parsedRepairCharges) ||
+      parsedRepairCharges < 0
+    ) {
+      alert("Service Charges and Repair Charges must be valid non-negative numbers.");
+      return;
+    }
+
+    setInvoices((prevInvoices) =>
+      prevInvoices.map((invoice) =>
+        invoice.aA_Number === aA_Number
+          ? {
+              ...invoice,
+              serviceCharges: parsedServiceCharges.toString(),
+              repairCharges: parsedRepairCharges.toString(),
+              total: (parsedServiceCharges + parsedRepairCharges).toString(),
+              remarks: remarks,
+            }
+          : invoice
+      )
+    );
+    setEditingRow(null);
+    setEditValues({});
+  };
+
+  const handleCancelEdit = () => {
+    setEditingRow(null);
+    setEditValues({});
+  };
+
+  const handleEditInputChange = (e) => {
+    const { name, value } = e.target;
+    setEditValues((prev) => ({ ...prev, [name]: value }));
   };
 
   return (
@@ -600,7 +651,7 @@ const ReviewBatchPage = () => {
               <tbody>
                 {isLoading && (
                   <tr>
-                    <td colSpan="17" className="text-center py-3">
+                    <td colSpan="19" className="text-center py-3">
                       Validating data...
                     </td>
                   </tr>
@@ -637,15 +688,26 @@ const ReviewBatchPage = () => {
                         />
                       </td>
                       <td className="border-start align-middle">
-                        <FaEdit
-                          className="text-purple review_fa_eye"
-                          style={{ cursor: "pointer" }}
-                          onClick={() =>
-                            navigate("/Edit-data", {
-                              state: { invoice: invoice },
-                            })
-                          }
-                        />
+                        {editingRow === invoice.aA_Number ? (
+                          <>
+                            <FaSave
+                              className="text-success me-2"
+                              style={{ cursor: "pointer" }}
+                              onClick={() => handleSaveEdit(invoice.aA_Number)}
+                            />
+                            <FaTimes
+                              className="text-danger"
+                              style={{ cursor: "pointer" }}
+                              onClick={handleCancelEdit}
+                            />
+                          </>
+                        ) : (
+                          <FaEdit
+                            className="text-purple review_fa_eye"
+                            style={{ cursor: "pointer" }}
+                            onClick={() => handleEdit(invoice)}
+                          />
+                        )}
                       </td>
                       <td className="align-middle">
                         {invoice.aA_Number || ""}
@@ -673,10 +735,34 @@ const ReviewBatchPage = () => {
                         {invoice.makeModel || ""}
                       </td>
                       <td className="align-middle">
-                        {invoice.repairCharges || ""}
+                        {editingRow === invoice.aA_Number ? (
+                          <input
+                            type="number"
+                            name="repairCharges"
+                            value={editValues.repairCharges || ""}
+                            onChange={handleEditInputChange}
+                            className="form-control"
+                            style={{ width: "100px", display: "inline-block" }}
+                            min="0"
+                          />
+                        ) : (
+                          invoice.repairCharges || ""
+                        )}
                       </td>
                       <td className="align-middle">
-                        {invoice.serviceCharges || ""}
+                        {editingRow === invoice.aA_Number ? (
+                          <input
+                            type="number"
+                            name="serviceCharges"
+                            value={editValues.serviceCharges || ""}
+                            onChange={handleEditInputChange}
+                            className="form-control"
+                            style={{ width: "100px", display: "inline-block" }}
+                            min="0"
+                          />
+                        ) : (
+                          invoice.serviceCharges || ""
+                        )}
                       </td>
                       <td className="align-middle">{invoice.total || ""}</td>
                       <td className="align-middle">
@@ -742,7 +828,19 @@ const ReviewBatchPage = () => {
                         </div>
                       </td>
                       <td className="align-middle border-end">
-                        {invoice.remarks || "-"}
+                        {editingRow === invoice.aA_Number ? (
+                          <input
+                            type="text"
+                            name="remarks"
+                            value={editValues.remarks || ""}
+                            onChange={handleEditInputChange}
+                            className="form-control"
+                            style={{ width: "150px", display: "inline-block" }}
+                            placeholder="Enter remarks"
+                          />
+                        ) : (
+                          invoice.remarks || "-"
+                        )}
                       </td>
                       <td
                         className="align-middle border-end pointer-cursor"

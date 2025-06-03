@@ -1,4 +1,3 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Table } from "react-bootstrap";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -9,33 +8,34 @@ import {
   FaTrash,
   FaUpload,
   FaEdit,
+  FaSave,
+  FaTimes
 } from "react-icons/fa";
 import Papa from "papaparse";
 import { useNavigate, useLocation } from "react-router-dom";
 import { saveAs } from "file-saver";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 const BASE_URL = "https://mintflix.live:8086/api/Auto";
 
 const VendorBatchPage = () => {
   const navigate = useNavigate();
-  const location = useLocation();
+  const { state } = useLocation();
   const fileInputRef = useRef();
-
-  // const updatedInvoice = location.state?.updatedRow;
-  // console.log(updatedInvoice, 'updatedinvocie')
 
   const {
     selectedInvoices = [],
     vendorName = "",
     vendorId = "",
     isExcelUpload = false,
-  } = location.state || {};
+  } = state || {};
+
   // State declarations
   const [invoices, setInvoices] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [isGSTApplied, setIsGSTApplied] = useState(false);
+  const [isGSTApplied, setIsGSTApplied] = useState(true);
   const [apiData, setApiData] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [previousInvoices, setPreviousInvoices] = useState([]);
   const [uploadedFile, setUploadedFile] = useState(null);
   const [fileType, setFileType] = useState("");
@@ -51,8 +51,8 @@ const VendorBatchPage = () => {
     invoiceAmount: false,
     caseCount: false,
   });
-  const [editRowIndex, setEditRowIndex] = useState(null);
-  const [editedCharges, setEditedCharges] = useState({});
+  const [editingRow, setEditingRow] = useState(null);
+  const [editValues, setEditValues] = useState({});
 
   useEffect(() => {
     const saved = sessionStorage.getItem("editedInvoice");
@@ -75,10 +75,9 @@ const VendorBatchPage = () => {
       sessionStorage.removeItem("editedInvoice");
     }
   }, []);
-  console.log(invoices, "invocicicoffdifs");
 
   // Constants
-  const itemsPerPage = 10; // Updated to 10 items per page
+  const itemsPerPage = 10;
   const totalPages = Math.ceil(invoices.length / itemsPerPage);
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
@@ -104,11 +103,13 @@ const VendorBatchPage = () => {
     const amount = parseFloat(cleanedRepair);
     return total + (isNaN(amount) ? 0 : amount);
   }, 0);
-const totalServiceCharges = currentInvoices.reduce((total, invoice) => {
-  const cleanedAmount = invoice.serviceCharges?.toString().replace(/,/g, "");
-  const amount = parseFloat(cleanedAmount);
-  return total + (isNaN(amount) ? 0 : amount);
-}, 0);
+
+  const totalServiceCharges = currentInvoices.reduce((total, invoice) => {
+    const cleanedAmount = invoice.serviceCharges?.toString().replace(/,/g, "");
+    const amount = parseFloat(cleanedAmount);
+    return total + (isNaN(amount) ? 0 : amount);
+  }, 0);
+
   const grossAmount = currentInvoices.reduce((total, invoice) => {
     const cleanedAmount = invoice.total?.toString().replace(/,/g, "");
     const amount = parseFloat(cleanedAmount);
@@ -128,6 +129,11 @@ const totalServiceCharges = currentInvoices.reduce((total, invoice) => {
     const initializedInvoices = selectedInvoices.map((invoice) => ({
       ...invoice,
       isChecked: invoice.isChecked !== undefined ? invoice.isChecked : true,
+      remarks: invoice.remarks || "",
+      // Ensure existing charges are formatted to 2 decimal places
+      repairCharges: invoice.repairCharges ? parseFloat(invoice.repairCharges).toFixed(2) : "0.00",
+      serviceCharges: invoice.serviceCharges ? parseFloat(invoice.serviceCharges).toFixed(2) : "0.00",
+      total: invoice.total ? parseFloat(invoice.total).toFixed(2) : "0.00"
     }));
     setInvoices(initializedInvoices);
   }, [selectedInvoices]);
@@ -144,7 +150,7 @@ const totalServiceCharges = currentInvoices.reduce((total, invoice) => {
     if (currentInvoices.length === 0) return;
 
     if (!areArraysEqual(currentInvoices, previousInvoices)) {
-      setLoading(true);
+      setIsLoading(true);
       const aaNumbers = currentInvoices
         .map((invoice) => invoice.aA_Number)
         .join(",");
@@ -162,7 +168,7 @@ const totalServiceCharges = currentInvoices.reduce((total, invoice) => {
           console.error("Error fetching API data:", error);
           setApiData([]);
         })
-        .finally(() => setLoading(false));
+        .finally(() => setIsLoading(false));
 
       setPreviousInvoices(currentInvoices);
     }
@@ -204,7 +210,6 @@ const totalServiceCharges = currentInvoices.reduce((total, invoice) => {
       ];
 
     const differences = [];
-
     if (normalize(matchedData.serviceType) !== normalize(invoice.serviceType)) {
       differences.push({
         field: "Service Type",
@@ -223,7 +228,7 @@ const totalServiceCharges = currentInvoices.reduce((total, invoice) => {
     }
     if (
       normalize(matchedData.serviceCharges) !==
-      normalize(invoice.serviceCharges)
+        normalize(invoice.serviceCharges)
     ) {
       differences.push({
         field: "Service Charges",
@@ -283,7 +288,7 @@ const totalServiceCharges = currentInvoices.reduce((total, invoice) => {
         },
         error: (err) => {
           console.error("CSV parsing error:", err);
-          alert("Failed to read CSV file.");
+          toast.error("Failed to read CSV file.");
         },
       });
     }
@@ -302,6 +307,7 @@ const totalServiceCharges = currentInvoices.reduce((total, invoice) => {
       "Repair Charges",
       "Service Charges",
       "Total",
+      "Remarks",
     ];
 
     const today = new Date().toLocaleDateString("en-GB");
@@ -314,8 +320,10 @@ const totalServiceCharges = currentInvoices.reduce((total, invoice) => {
       serviceType: invoice.serviceType || "",
       brand: invoice.brand || "",
       makeModel: invoice.makeModel || "",
-      repairCharges: invoice.repairCharges || "",
-      total: invoice.total || "",
+      repairCharges: invoice.repairCharges || "0.00",
+      serviceCharges: invoice.serviceCharges || "0.00",
+      total: invoice.total || "0.00",
+      remarks: invoice.remarks || "",
     }));
 
     const csv = Papa.unparse({
@@ -327,17 +335,73 @@ const totalServiceCharges = currentInvoices.reduce((total, invoice) => {
     saveAs(blob, "invoice-list.csv");
   };
 
-  const handleCellChange = (index, field, value) => {
-    const updatedInvoices = [...invoices];
-    updatedInvoices[index][field] = value;
-    setInvoices(updatedInvoices);
+  // Handle starting edit mode for a row
+  const handleEdit = (invoice) => {
+    setEditingRow(invoice.aA_Number);
+    setEditValues({
+      serviceCharges: invoice.serviceCharges || "0.00",
+      repairCharges: invoice.repairCharges || "0.00",
+      remarks: invoice.remarks || "",
+    });
   };
+
+  // Handle saving edited values
+  const handleSaveEdit = (aA_Number) => {
+    const parsedServiceCharges = parseFloat(editValues.serviceCharges);
+    const parsedRepairCharges = parseFloat(editValues.repairCharges);
+    const remarks = editValues.remarks?.trim() || "";
+
+    // Validate inputs
+    if (
+      isNaN(parsedServiceCharges) ||
+      parsedServiceCharges < 0 ||
+      isNaN(parsedRepairCharges) ||
+      parsedRepairCharges < 0
+    ) {
+      toast.error("Service Charges and Repair Charges must be valid non-negative numbers.");
+      return;
+    }
+
+    // Format to 2 decimal places
+    const formattedServiceCharges = parsedServiceCharges.toFixed(2);
+    const formattedRepairCharges = parsedRepairCharges.toFixed(2);
+    const formattedTotal = (parsedServiceCharges + parsedRepairCharges).toFixed(2);
+
+    setInvoices((prevInvoices) =>
+      prevInvoices.map((invoice) =>
+        invoice.aA_Number === aA_Number
+          ? {
+              ...invoice,
+              serviceCharges: formattedServiceCharges,
+              repairCharges: formattedRepairCharges,
+              total: formattedTotal,
+              remarks: remarks,
+            }
+          : invoice
+      )
+    );
+    setEditingRow(null);
+    setEditValues({});
+  };
+
+  // Handle canceling edit mode
+  const handleCancelEdit = () => {
+    setEditingRow(null);
+    setEditValues({});
+  };
+
+  // Handle input changes during editing
+  const handleEditInputChange = (e) => {
+    const { name, value } = e.target;
+    setEditValues((prev) => ({ ...prev, [name]: value }));
+  };
+
   const handleSubmit = async () => {
     try {
       const selected = invoices.filter((inv) => inv.isChecked);
 
       if (selected.length === 0) {
-        alert("Please select at least one invoice.");
+        toast.error("Please select at least one invoice.");
         return;
       }
 
@@ -349,21 +413,44 @@ const totalServiceCharges = currentInvoices.reduce((total, invoice) => {
       };
       setFieldErrors(newErrors);
 
-      // if (Object.values(newErrors).some(Boolean)) {
-      //   alert("Please fill all required invoice fields.");
-      //   return;
-      // }
-
-      if (
-        uploadedFile &&
-        parseFloat(invoiceAmount) !== parseFloat(finalAmount)
-      ) {
-        setAmountError("Invoice Amount and Final Amount do not match.");
+      if (uploadedFile && Object.values(newErrors).some(Boolean)) {
+        toast.error("Please fill all required invoice fields.");
         return;
       }
 
-      if (uploadedFile && parseInt(caseCount) !== selectedAAno.length) {
-        alert("Case Count does not match the number of selected services.");
+      const parsedInvoiceAmount = parseFloat(invoiceAmount);
+      if (uploadedFile && (isNaN(parsedInvoiceAmount) || parsedInvoiceAmount <= 0)) {
+        setFieldErrors((prev) => ({ ...prev, invoiceAmount: true }));
+        toast.error("Invoice Amount must be a valid positive number.");
+        return;
+      }
+
+      if (uploadedFile && Math.abs(parsedInvoiceAmount - parseFloat(finalAmount)) > 0.01) {
+        setFieldErrors((prev) => ({ ...prev, invoiceAmount: true }));
+        setAmountError("Invoice Amount and Final Amount do not match.");
+        toast.error("Invoice Amount and Final Amount do not match.");
+        return;
+      } else {
+        setAmountError("");
+      }
+
+      const parsedCaseCount = parseInt(caseCount);
+      if (uploadedFile && (isNaN(parsedCaseCount) || parsedCaseCount <= 0)) {
+        setFieldErrors((prev) => ({ ...prev, caseCount: true }));
+        toast.error("Case Count must be a valid positive number.");
+        return;
+      }
+
+      if (uploadedFile && parsedCaseCount !== selectedAAno.length) {
+        setFieldErrors((prev) => ({ ...prev, caseCount: true }));
+        toast.error("Case Count does not match the number of selected services.");
+        return;
+      }
+
+      const today = new Date().toISOString().split("T")[0];
+      if (uploadedFile && invoiceDate > today) {
+        setFieldErrors((prev) => ({ ...prev, invoiceDate: true }));
+        toast.error("Invoice Date cannot be a future date.");
         return;
       }
 
@@ -375,18 +462,14 @@ const totalServiceCharges = currentInvoices.reduce((total, invoice) => {
         );
 
         if (!matchedData) {
-          alert(
-            `AA Number ${invoice.aA_Number} not found in reference data.\nPlease delete the row or check the source.`
+          toast.error(
+            `AA Number ${invoice.aA_Number} not found in reference data. Please delete the row or check the source.`
           );
-          return; // Stop submission if any AA number is missing
+          return;
         }
 
-        const normalize = (val) =>
-          (val ? val.toString().trim() : "").toLowerCase();
-
         if (
-          normalize(matchedData.serviceType) !==
-            normalize(invoice.serviceType) ||
+          normalize(matchedData.serviceType) !== normalize(invoice.serviceType) ||
           normalize(matchedData.repairCharges) !==
             normalize(invoice.repairCharges) ||
           normalize(matchedData.serviceCharges) !==
@@ -414,6 +497,7 @@ const totalServiceCharges = currentInvoices.reduce((total, invoice) => {
       formData.append("CreationDate", extract("creationDate"));
       formData.append("ClosureDate", extract("closureDate"));
       formData.append("CustomerName", extract("customerName"));
+      formData.append("Remarks", extract("remarks"));
       formData.append("VendorName", vendorName);
       formData.append("finalAmount", finalAmount);
       formData.append("TotalRepairCharges", totalRepairCharges.toFixed(2));
@@ -451,17 +535,15 @@ const totalServiceCharges = currentInvoices.reduce((total, invoice) => {
         throw new Error("Error submitting batch");
       }
 
-      alert("Batch submitted successfully.");
-
-      // Redirect
+      toast.success("Batch submitted successfully.");
       if (uploadedFile) {
         navigate("/approval");
       } else {
-        // navigate("/");
+        navigate("/");
       }
     } catch (error) {
       console.error("Submission failed:", error);
-      alert("Submission failed. Please check console for details.");
+      toast.error("Submission failed. Please check console for details.");
     }
   };
 
@@ -544,7 +626,7 @@ const totalServiceCharges = currentInvoices.reduce((total, invoice) => {
           </div>
 
           {fileType && (
-            <div className="text-end uplaod_file_ext_name mb-3">
+            <div className="text-end upload_file_ext_name mb-3">
               <span style={{ fontWeight: "bold", color: "green" }}>
                 Uploaded File Type: {fileType}
               </span>
@@ -554,12 +636,10 @@ const totalServiceCharges = currentInvoices.reduce((total, invoice) => {
             <Table className="bg-white text-center border-0 network_table">
               <thead style={{ backgroundColor: "#EEF4FF" }}>
                 <tr className="text-dark fw-semibold table_th_border">
-                  <th className="border-start">View</th>
-                  <th className="border-start">Edit</th>
+                  <th className="border-start" style={{ whiteSpace: "nowrap" }} >View</th>
+                  <th className="border-start" style={{ whiteSpace: "nowrap" }}>Edit</th>
                   <th style={{ whiteSpace: "nowrap" }}>AA No</th>
-
                   <th style={{ whiteSpace: "nowrap" }}>IMEI No</th>
-
                   <th style={{ whiteSpace: "nowrap" }}>Creation Date</th>
                   <th style={{ whiteSpace: "nowrap" }}>Closure Date</th>
                   <th style={{ whiteSpace: "nowrap" }}>Customer Name</th>
@@ -572,13 +652,14 @@ const totalServiceCharges = currentInvoices.reduce((total, invoice) => {
                   <th style={{ whiteSpace: "nowrap" }}>Invoice Status</th>
                   <th style={{ whiteSpace: "nowrap" }}>Error Name</th>
                   <th style={{ whiteSpace: "nowrap" }}>Differences</th>
-                  <th className="border-end">Action</th>
+                  <th style={{ whiteSpace: "nowrap" }}>Remarks</th>
+                  <th className="border-end" style={{ whiteSpace: "nowrap" }}>Action</th>
                 </tr>
               </thead>
               <tbody>
-                {loading && (
+                {isLoading && (
                   <tr>
-                    <td colSpan="16" className="text-center py-3">
+                    <td colSpan="18" className="text-center py-3">
                       Validating data...
                     </td>
                   </tr>
@@ -605,69 +686,74 @@ const totalServiceCharges = currentInvoices.reduce((total, invoice) => {
                       />
                     </td>
                     <td className="border-start align-middle">
-                      <FaEdit
-                        className="text-purple review_fa_eye"
-                        style={{ cursor: "pointer" }}
-                        onClick={() => {
-                          setEditRowIndex(index);
-                          setEditedCharges({
-                            repairCharges: invoice.repairCharges,
-                            serviceCharges: invoice.serviceCharges,
-                          });
-                        }}
-                      />
+                      {editingRow === invoice.aA_Number ? (
+                        <>
+                          <FaSave
+                            className="text-success me-2"
+                            style={{ cursor: "pointer" }}
+                            onClick={() => handleSaveEdit(invoice.aA_Number)}
+                          />
+                          <FaTimes
+                            className="text-danger"
+                            style={{ cursor: "pointer" }}
+                            onClick={handleCancelEdit}
+                          />
+                        </>
+                      ) : (
+                        <FaEdit
+                          className="text-purple review_fa_eye"
+                          style={{ cursor: "pointer" }}
+                          onClick={() => handleEdit(invoice)}
+                        />
+                      )}
                     </td>
-                    <td className="align-middle">{invoice.aA_Number || ""}</td>
-                    <td className="align-middle">{invoice.imeiNumber || ""}</td>
-                    <td className="align-middle">
+                    <td className="align-middle" style={{ whiteSpace: "nowrap" }}>{invoice.aA_Number || ""}</td>
+                    <td className="align-middle" style={{ whiteSpace: "nowrap" }}>{invoice.imeiNumber || ""}</td>
+                    <td className="align-middle" style={{ whiteSpace: "nowrap" }}>
                       {new Date().toLocaleDateString("en-GB")}
                     </td>
-                    <td className="align-middle"></td>
-                    <td className="align-middle">
+                    <td className="align-middle" style={{ whiteSpace: "nowrap" }}>{invoice.closureDate || ""}</td>
+                    <td className="align-middle" style={{ whiteSpace: "nowrap" }}>
                       {invoice.customerName || ""}
                     </td>
-                    <td className="align-middle">
+                    <td className="align-middle" style={{ whiteSpace: "nowrap" }}>
                       {invoice.serviceType || ""}
                     </td>
-                    <td className="align-middle">{invoice.brand || ""}</td>
-                    <td className="align-middle">{invoice.makeModel || ""}</td>
-                    <td className="align-middle">
-                      {editRowIndex === index ? (
+                    <td className="align-middle" style={{ whiteSpace: "nowrap" }}>{invoice.brand || ""}</td>
+                    <td className="align-middle" style={{ whiteSpace: "nowrap" }}>{invoice.makeModel || ""}</td>
+                    <td className="align-middle" style={{ whiteSpace: "nowrap" }}>
+                      {editingRow === invoice.aA_Number ? (
                         <input
                           type="number"
-                          className="form-control form-control-sm"
-                          value={editedCharges.repairCharges}
-                          onChange={(e) =>
-                            setEditedCharges({
-                              ...editedCharges,
-                              repairCharges: e.target.value,
-                            })
-                          }
+                          name="repairCharges"
+                          value={editValues.repairCharges || ""}
+                          onChange={handleEditInputChange}
+                          className="form-control"
+                          style={{ width: "100px", display: "inline-block" }}
+                          min="0"
+                          step="0.01"
                         />
                       ) : (
-                        invoice.repairCharges || ""
+                        invoice.repairCharges || "0.00"
                       )}
                     </td>
-
-                    <td className="align-middle">
-                      {editRowIndex === index ? (
+                    <td className="align-middle" style={{ whiteSpace: "nowrap" }}>
+                      {editingRow === invoice.aA_Number ? (
                         <input
                           type="number"
-                          className="form-control form-control-sm"
-                          value={editedCharges.serviceCharges}
-                          onChange={(e) =>
-                            setEditedCharges({
-                              ...editedCharges,
-                              serviceCharges: e.target.value,
-                            })
-                          }
+                          name="serviceCharges"
+                          value={editValues.serviceCharges || ""}
+                          onChange={handleEditInputChange}
+                          className="form-control"
+                          style={{ width: "100px", display: "inline-block" }}
+                          min="0"
+                          step="0.01"
                         />
                       ) : (
-                        invoice.serviceCharges || ""
+                        invoice.serviceCharges || "0.00"
                       )}
                     </td>
-
-                    <td className="align-middle">{invoice.total || ""}</td>
+                    <td className="align-middle" style={{ whiteSpace: "nowrap" }}>{invoice.total || "0.00"}</td>
                     <td className="align-middle">
                       <span
                         className="vendore_invoice_status px-3 py-1 rounded-pill"
@@ -676,13 +762,13 @@ const totalServiceCharges = currentInvoices.reduce((total, invoice) => {
                         {invoice.invoiceStatus || ""}
                       </span>
                     </td>
-                    <td className="align-middle">
+                    <td className="align-middle" style={{ whiteSpace: "nowrap" }}>
                       {getDifferencesData(invoice).length > 0
                         ? "Mismatch"
                         : "Valid"}
                     </td>
                     <td
-                      className="align-middle position-relative"
+                      className="align-middle"
                       onMouseEnter={() => setHoveredRow(index)}
                       onMouseLeave={() => setHoveredRow(null)}
                       style={{ cursor: "pointer", position: "relative" }}
@@ -728,8 +814,23 @@ const totalServiceCharges = currentInvoices.reduce((total, invoice) => {
                           </div>
                         )}
                     </td>
+                    <td className="align-middle">
+                      {editingRow === invoice.aA_Number ? (
+                        <input
+                          type="text"
+                          name="remarks"
+                          value={editValues.remarks || ""}
+                          onChange={handleEditInputChange}
+                          className="form-control"
+                          style={{ width: "150px", display: "inline-block" }}
+                          placeholder="Enter remarks"
+                        />
+                      ) : (
+                        invoice.remarks || "-"
+                      )}
+                    </td>
                     <td
-                      className="align-middle border-end pointer-cursor"
+                      className="align-middle border-end"
                       style={{ cursor: "pointer" }}
                     >
                       <FaTrash onClick={() => handleDelete(index)} />
@@ -849,14 +950,18 @@ const totalServiceCharges = currentInvoices.reduce((total, invoice) => {
                     }`}
                     placeholder="Enter Case Count"
                     value={caseCount}
-                    onChange={(e) => setCaseCount(e.target.value)}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setCaseCount(value);
+                      setFieldErrors((prev) => ({
+                        ...prev,
+                        caseCount: !value.trim() || isNaN(value) || parseInt(value) <= 0,
+                      }));
+                    }}
                   />
                   {uploadedFile && fieldErrors.caseCount && (
-                    <div
-                      className="text-danger mt-1"
-                      style={{ fontSize: "14px" }}
-                    >
-                      Case Count is required.
+                    <div className="text-danger mt-1" style={{ fontSize: "14px" }}>
+                      Case Count must be a valid positive number.
                     </div>
                   )}
                 </div>
@@ -870,84 +975,80 @@ const totalServiceCharges = currentInvoices.reduce((total, invoice) => {
                     }`}
                     placeholder="Enter Invoice No"
                     value={invoiceNo}
-                    onChange={(e) => setInvoiceNo(e.target.value)}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setInvoiceNo(value);
+                      setFieldErrors((prev) => ({
+                        ...prev,
+                        invoiceNo: !value.trim(),
+                      }));
+                    }}
                   />
-                  {uploadedFile && fieldErrors.invoiceNo && (
-                    <div
-                      className="text-danger mt-1"
-                      style={{ fontSize: "14px" }}
-                    >
+                  {uploadedFile && fieldErrors?.invoiceNo && (
+                    <div className="text-danger mt-1" style={{ fontSize: "14px" }}>
                       Invoice No is required.
                     </div>
                   )}
                 </div>
-
-                <div className="col-md-4 align-items-center mb-3">
+                <div className="col-md-md-4 align-items-center mb-3">
                   <label className="me-2 fw-semibold w-50">Invoice Date</label>
                   <input
                     type="date"
-                    className={`form-control border-dark ${
-                      uploadedFile && fieldErrors.invoiceDate
-                        ? "is-invalid"
-                        : ""
-                    }`}
+                    className={`form-control border-dark-dark ${
+                      uploadedFile && fieldErrors?.invoiceDate ? "is-invalid" : ""}`
+                    }
                     value={invoiceDate}
-                    onChange={(e) => setInvoiceDate(e.target.value)}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setInvoiceDate(value);
+                      setFieldErrors((prev) => ({
+                        ...prev,
+                        invoiceDate: !value || value > new Date().toISOString().split("T")[0],
+                      }));
+                    }}
                     max={new Date().toISOString().split("T")[0]}
                   />
-                  {uploadedFile && fieldErrors.invoiceDate && (
-                    <div
-                      className="text-danger mt-1"
-                      style={{ fontSize: "14px" }}
-                    >
-                      Invoice Date is required.
+                  {uploadedFile && fieldErrors?.invoiceDate && (
+                    <div className="text-danger mt-1" style={{ fontSize: "14px" }}>
+                      Invoice Date is required and cannot be a future date.
                     </div>
                   )}
                 </div>
-
                 <div className="col-md-4 align-items-center mb-3">
-                  <label className="me-2 fw-semibold w-50">
-                    Invoice Amount
-                  </label>
+                  <label className="me-2 fw-semibold w-50">Invoice Amount</label>
                   <input
                     type="text"
                     className={`form-control border-dark ${
-                      uploadedFile && (fieldErrors.invoiceAmount || amountError)
-                        ? "is-invalid"
-                        : ""
+                      uploadedFile && (fieldErrors?.invoiceAmount || amountError)
+                        ? "is-invalid" : ""
                     }`}
-                    placeholder="Enter Invoice Amount"
+                    placeholder="Enter Amount"
                     value={invoiceAmount}
                     onChange={(e) => {
-                      const enteredAmount = e.target.value;
-                      setInvoiceAmount(enteredAmount);
-
-                      if (uploadedFile) {
-                        if (
-                          parseFloat(enteredAmount) !== parseFloat(finalAmount)
-                        ) {
-                          setAmountError(
-                            "Invoice Amount and Final Amount do not match."
-                          );
+                      const inputAmount = e.target.value;
+                      setInvoiceAmount(inputAmount);
+                      setFieldErrors((prev) => ({
+                        ...prev,
+                        invoiceAmount: !inputAmount.trim() || isNaN(inputAmount) || parseFloat(inputAmount) <= 0,
+                      }));
+                      if (uploadedFile && inputAmount.trim() && !isNaN(inputAmount)) {
+                        if (Math.abs(parseFloat(inputAmount) - parseFloat(finalAmount)) > 0.01) {
+                          setAmountError("Invoice Amount and Final Amount do not match.");
                         } else {
                           setAmountError("");
                         }
+                      } else {
+                        setAmountError("");
                       }
                     }}
                   />
-                  {uploadedFile && fieldErrors.invoiceAmount && (
-                    <div
-                      className="text-danger mt-1"
-                      style={{ fontSize: "14px" }}
-                    >
-                      Invoice Amount is required.
+                  {uploadedFile && fieldErrors?.invoiceAmount && (
+                    <div className="text-danger mt-1" style={{ fontSize: "14px" }}>
+                      Invoice Amount must be a valid positive number.
                     </div>
                   )}
                   {amountError && (
-                    <div
-                      className="text-danger mt-1"
-                      style={{ fontSize: "14px" }}
-                    >
+                    <div className="text-danger mt-1" style={{ fontSize: "14px" }}>
                       {amountError}
                     </div>
                   )}
@@ -961,12 +1062,12 @@ const totalServiceCharges = currentInvoices.reduce((total, invoice) => {
               onClick={downloadCSV}
               className="btn btn-primary d-flex align-items-center"
               style={{
-                backgroundColor: "rgb(248 238 255)",
+                backgroundColor: "rgb(248, 238, 255)",
                 border: "1px solid #8000d7",
-                padding: "10px 50px",
+                padding: "10px 15px",
                 borderRadius: "8px",
                 fontWeight: "500",
-                fontSize: "16px",
+                fontSize: "14px",
                 color: "#8000d7",
               }}
             >
@@ -978,10 +1079,10 @@ const totalServiceCharges = currentInvoices.reduce((total, invoice) => {
               style={{
                 backgroundColor: "#8000d7",
                 border: "none",
-                padding: "10px 50px",
+                padding: "10px 20px",
                 borderRadius: "8px",
                 fontWeight: "500",
-                fontSize: "16px",
+                fontSize: "14px",
                 color: "white",
               }}
             >
@@ -995,11 +1096,11 @@ const totalServiceCharges = currentInvoices.reduce((total, invoice) => {
         .table-container {
           max-height: 400px;
           overflow-y: auto;
-          overflow-x: hidden;
+          overflow-x: auto;
         }
         .network_table th,
         .network_table td {
-          overflow-wrap: break-word;
+          word-break: break-all;
           padding: 8px;
           vertical-align: middle;
         }
@@ -1007,7 +1108,7 @@ const totalServiceCharges = currentInvoices.reduce((total, invoice) => {
           margin-top: 1rem;
         }
         .page-info {
-          font-weight: 500;
+          font-weight: 400;
         }
       `}</style>
     </div>

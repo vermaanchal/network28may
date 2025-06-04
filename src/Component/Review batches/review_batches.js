@@ -14,6 +14,7 @@ import Search_vendor_popup from "./search_vendor_popup";
 import pdf_img from "../images/pdf_downlaod.png";
 import random_pdf from "../images/dummy-pdf_2.pdf";
 import pdfimage from "../images/pdf_downlaod.png";
+import { IconButton } from "@mui/material";
 
 import { FormControl, Select, MenuItem, InputLabel } from "@mui/material";
 import Chip from "@mui/material/Chip";
@@ -424,40 +425,43 @@ function Review_batches() {
                         className="text-center border-bottom network_td_item"
                       >
                         <td className="border-start align-middle">
-                          <FaEye
-                            className="text-purple review_fa_eye"
-                            style={{ cursor: "pointer" }}
-                            onClick={() => {
-                              console.log("Clicked invoice row:", invoice);
-                              const selectedBatchData = {
-                                aaNo: invoice.aaNo || "",
-                                imeiNo: invoice.imeiNo || "",
-                                creationDate:
-                                  invoice.creationDate ||
-                                  new Date().toLocaleDateString("en-GB"),
-                                closureDate: invoice.closureDate || "",
-                                customerName: invoice.customerName || "",
-                                serviceType: invoice.serviceType || "",
-                                brand: invoice.brand || "",
-                                makeModel: invoice.makeModel || "",
-                                repairCharges: invoice.repairCharges || "",
-                                serviceCharges: invoice.serviceCharges || "",
-                                total: invoice.total || "",
-                                invoiceStatus: invoice.invoiceStatus || "",
-                                sellingPartner: invoice.sellingPartner || "",
-                                batchNo: invoice.batchNo || "",
-                                vendorName: invoice.vendorName || "",
-                                remarks: invoice.remarks || "",
-                              };
-                              navigate("/ReviewBatchPage", {
-                                state: {
-                                  selectedBatchData,
-                                  vendorId,
-                                  isExcelUpload,
-                                },
-                              });
-                            }}
-                          />
+                          <IconButton>
+                            <FaEye
+                              size={20}
+                              className="text-purple review_fa_eye"
+                              style={{ cursor: "pointer" }}
+                              onClick={() => {
+                                console.log("Clicked invoice row:", invoice);
+                                const selectedBatchData = {
+                                  aaNo: invoice.aaNo || "",
+                                  imeiNo: invoice.imeiNo || "",
+                                  creationDate:
+                                    invoice.creationDate ||
+                                    new Date().toLocaleDateString("en-GB"),
+                                  closureDate: invoice.closureDate || "",
+                                  customerName: invoice.customerName || "",
+                                  serviceType: invoice.serviceType || "",
+                                  brand: invoice.brand || "",
+                                  makeModel: invoice.makeModel || "",
+                                  repairCharges: invoice.repairCharges || "",
+                                  serviceCharges: invoice.serviceCharges || "",
+                                  total: invoice.total || "",
+                                  invoiceStatus: invoice.invoiceStatus || "",
+                                  sellingPartner: invoice.sellingPartner || "",
+                                  batchNo: invoice.batchNo || "",
+                                  vendorName: invoice.vendorName || "",
+                                  remarks: invoice.remarks || "",
+                                };
+                                navigate("/ReviewBatchPage", {
+                                  state: {
+                                    selectedBatchData,
+                                    vendorId,
+                                    isExcelUpload,
+                                  },
+                                });
+                              }}
+                            />
+                          </IconButton>
                         </td>
                         <td className="align-middle">
                           {invoice.batchNo ?? "--"}

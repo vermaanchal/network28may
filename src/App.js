@@ -25,6 +25,7 @@ import VendorBatchPage from './Component/Vandor Name/VendorBatchPage';
 import ReviewBatchPage from './Component/Review batches/ReviewBatchPage';
 import ApprovalBatchPage from './Component/Approval/ApprovalBatchPage';
 import GetNetworkReject from './Component/getnetworkReject/GetNetworkReject';
+import SendBackByApproval from './Component/SendBackByApproval/SendBackByApproval';
 
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -131,7 +132,7 @@ function App() {
                   </Box>
                 </>
               }
-              allowedRoles={['NetworkAdmin']}
+              allowedRoles={['NetworkSubAdmin', 'NetworkAdmin']}
             />
           }
         />
@@ -414,6 +415,32 @@ function App() {
                     }}
                   >
                     <PartialApproval />
+                  </Box>
+                </>
+              }
+              allowedRoles={['NetworkSubAdmin', 'NetworkAdmin']}
+            />
+          }
+        />
+        <Route
+          path="/sendBackByapproval"
+          element={
+            <ProtectedRoute
+              element={
+                <>
+                  <Header open={sidebarOpen} toggleSidebar={toggleSidebar} />
+                  <Sidebar open={sidebarOpen} toggleSidebar={toggleSidebar} />
+                  <Box
+                    component="main"
+                    sx={{
+                      flexGrow: 1,
+                      marginLeft: sidebarOpen && !isMobile ? '0px' : 0,
+                      width: '100%',
+                      marginTop: '64px',
+                      transition: 'margin 0.3s ease-in-out',
+                    }}
+                  >
+                    <SendBackByApproval />
                   </Box>
                 </>
               }

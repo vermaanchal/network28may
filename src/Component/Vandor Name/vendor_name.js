@@ -186,11 +186,13 @@ function Vendor_name() {
                 "Closure Date": "closureDate",
                 "Customer Name": "customerName",
                 "Service Type": "serviceType",
-                Brand: "brand",
+                "Brand": "brand",
                 "Make Model": "makeModel",
                 "Repair Charges": "repairCharges",
-                // "Charges( incl GST)": "chargesIncGST",
-                Total: "total",
+                "Service Charges": "serviceCharges",
+                "Selling Partner": "sellingPartner",
+
+                "Total": "total",
                 "Invoice Status": "invoiceStatus",
               }[key] || key;
 

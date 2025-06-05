@@ -26,6 +26,8 @@ import ReviewBatchPage from './Component/Review batches/ReviewBatchPage';
 import ApprovalBatchPage from './Component/Approval/ApprovalBatchPage';
 import GetNetworkReject from './Component/getnetworkReject/GetNetworkReject';
 import SendBackByApproval from './Component/SendBackByApproval/SendBackByApproval';
+import PartialDetailPage from './Component/PartialApproval/PartialDetailPage';
+import SendbackDetailPage from './Component/SendBackByApproval/SendBackDetailPage';
 
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -423,6 +425,32 @@ function App() {
           }
         />
         <Route
+          path="/partialDetailPage"
+          element={
+            <ProtectedRoute
+              element={
+                <>
+                  <Header open={sidebarOpen} toggleSidebar={toggleSidebar} />
+                  <Sidebar open={sidebarOpen} toggleSidebar={toggleSidebar} />
+                  <Box
+                    component="main"
+                    sx={{
+                      flexGrow: 1,
+                      marginLeft: sidebarOpen && !isMobile ? '0px' : 0,
+                      width: '100%',
+                      marginTop: '64px',
+                      transition: 'margin 0.3s ease-in-out',
+                    }}
+                  >
+                    <PartialDetailPage />
+                  </Box>
+                </>
+              }
+              allowedRoles={['NetworkAdmin']}
+            />
+          }
+        />
+        <Route
           path="/sendBackByapproval"
           element={
             <ProtectedRoute
@@ -445,6 +473,32 @@ function App() {
                 </>
               }
               allowedRoles={['NetworkSubAdmin', 'NetworkAdmin']}
+            />
+          }
+        />
+        <Route
+          path="/sendBackdetailPage"
+          element={
+            <ProtectedRoute
+              element={
+                <>
+                  <Header open={sidebarOpen} toggleSidebar={toggleSidebar} />
+                  <Sidebar open={sidebarOpen} toggleSidebar={toggleSidebar} />
+                  <Box
+                    component="main"
+                    sx={{
+                      flexGrow: 1,
+                      marginLeft: sidebarOpen && !isMobile ? '0px' : 0,
+                      width: '100%',
+                      marginTop: '64px',
+                      transition: 'margin 0.3s ease-in-out',
+                    }}
+                  >
+                    <SendbackDetailPage />
+                  </Box>
+                </>
+              }
+              allowedRoles={['NetworkAdmin']}
             />
           }
         />

@@ -22,7 +22,7 @@ function Approval() {
   const dateInputRef = useRef(null);
   const [invoices, setInvoices] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
-const { user } = React.useContext(AuthContext);
+  const { user } = React.useContext(AuthContext);
   const handleIconClick = () => {
     dateInputRef.current?.setFocus();
   };
@@ -201,34 +201,42 @@ const { user } = React.useContext(AuthContext);
 
   const invoiceOptions = ["Approve", "Reject",];
 
-  const handleInvoiceStatusChange = async (index, newStatus) => {
-    const globalIndex = indexOfFirstItem + index;
-    const selectedInvoice = filteredInvoices[globalIndex];
-    const batchNo = selectedInvoice?.batchNo;
+const handleInvoiceStatusChange = async (index, newStatus) => {
+  const globalIndex = indexOfFirstItem + index;
+  const selectedInvoice = filteredInvoices[globalIndex];
+  const batchNo = selectedInvoice?.batchNo;
 
-    try {
-      const response = await updateInvoiceStatusNetworkForApproved({
-        batchNo,
-        invoiceStatus: newStatus,
+  try {
+    const response = await updateInvoiceStatusNetworkForApproved({
+      batchNo,
+      invoiceStatus: newStatus,
+    });
+
+    setInvoices((prev) =>
+      prev.map((item) =>
+        item.batchNo === batchNo
+          ? {
+              ...item,
+              invoiceStatus: newStatus,
+              financeStatus:
+                newStatus === "Approved" ? "Submitted" : item.financeStatus,
+            }
+          : item
+      )
+    );
+
+    toast.success("Invoice status updated successfully!");
+
+    if (newStatus === "Approve") {
+      navigate("/approvalBatchPage", {
+        state: { batchData: selectedInvoice },
       });
-      setInvoices((prev) =>
-        prev.map((item) =>
-          item.batchNo === batchNo
-            ? {
-                ...item,
-                invoiceStatus: newStatus,
-                financeStatus:
-                  newStatus === "Approved" ? "Submitted" : item.financeStatus,
-              }
-            : item
-        )
-      );
-      toast.success("Invoice status updated successfully!");
-    } catch (err) {
-      console.error("Failed to update invoice status:", err);
-      toast.error("Failed to update invoice status");
     }
-  };
+  } catch (err) {
+    console.error("Failed to update invoice status:", err);
+    toast.error("Failed to update invoice status");
+  }
+};
 
   return (
     <div>
@@ -378,13 +386,13 @@ const { user } = React.useContext(AuthContext);
                       <td className="align-middle">
                         {invoice.total
                           ? `${invoice.total
-                              .split(",")
-                              .map((val) => parseFloat(val.trim()))
-                              .reduce(
-                                (acc, num) => acc + (isNaN(num) ? 0 : num),
-                                0
-                              )
-                              .toLocaleString()}`
+                            .split(",")
+                            .map((val) => parseFloat(val.trim()))
+                            .reduce(
+                              (acc, num) => acc + (isNaN(num) ? 0 : num),
+                              0
+                            )
+                            .toLocaleString()}`
                           : "--"}
                       </td>
                       <td
@@ -393,7 +401,7 @@ const { user } = React.useContext(AuthContext);
                       >
                         {invoice.remarks
                           ? invoice.remarks.split(" ").slice(0, 3).join(" ") +
-                            (invoice.remarks.split(" ").length > 3 ? "..." : "")
+                          (invoice.remarks.split(" ").length > 3 ? "..." : "")
                           : "No remark"}
                       </td>
 
@@ -437,6 +445,19 @@ const { user } = React.useContext(AuthContext);
                                 >
                                   {status}
                                 </Dropdown.Item>
+                                // <Dropdown.Item
+                                //   key={status}
+                                //   onClick={() => {
+                                //     handleInvoiceStatusChange(index, status);
+
+                                //     if (status === "Approve") {
+                                //         window.location.href = "/approvalBatchPage"; 
+                                //     }
+                                //   }}
+                                //   className="custom-dropdown-item"
+                                // >
+                                //   {status}
+                                // </Dropdown.Item>
                               ))}
                             </Dropdown.Menu>
                           </Dropdown>

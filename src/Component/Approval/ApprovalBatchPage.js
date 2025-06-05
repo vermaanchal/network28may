@@ -942,7 +942,7 @@
 //                             invoice.serviceCharges || "0.00"
 //                           )}
 //                         </td>
-                    
+
 //                         <td className="align-middle">
 //                           {invoice.total || "0.00"}
 //                         </td>
@@ -1824,13 +1824,13 @@ function ApprovalBatchPage() {
       prevInvoices.map((invoice) =>
         invoice.aA_Number === aA_Number
           ? {
-              ...invoice,
-              serviceCharges: formattedServiceCharges,
-              repairCharges: formattedRepairCharges,
-              chargesInclGST: formattedChargesInclGST,
-              total: formattedTotal,
-              remarks: remarks,
-            }
+            ...invoice,
+            serviceCharges: formattedServiceCharges,
+            repairCharges: formattedRepairCharges,
+            chargesInclGST: formattedChargesInclGST,
+            total: formattedTotal,
+            remarks: remarks,
+          }
           : invoice
       )
     );
@@ -1878,7 +1878,7 @@ function ApprovalBatchPage() {
       }
     } catch (error) {
       console.error("Error updating invoice:", error);
-      toast.error("Error updating invoice. Please check console for details.");
+      // toast.error("Error updating invoice. Please check console for details.");
     }
   };
 
@@ -2040,141 +2040,171 @@ function ApprovalBatchPage() {
     }
   };
 
-  const handleSendBack = async () => {
+  const handleSendAction = async (type) => {
+    const isSendBack = type === "Send Back";
+    const isPartial = type === "Send Partial";
+
+    const selected = invoices.filter((inv) => inv.isChecked);
+    if (selected.length === 0) {
+      toast.error("Please select at least one invoice.");
+      return;
+    }
+
+    const filteredSelected = isSendBack
+      ? selected
+      : selected.filter((inv) => getRowClassName(inv) === "row-green");
+
+    console.log(filteredSelected, 'filterrer')
+    if (isPartial && filteredSelected.length === 0) {
+      toast.error("selected rows are not eligible for partial approval.");
+      return;
+    }
+
+    // const reason = prompt("Please provide a reason:");
+    // if (!reason || !reason.trim()) {
+    //   toast.error("A reason is required.");
+    //   return;
+    // }
+
+    // Helper to extract field values
+    const extract = (key) =>
+      filteredSelected.map((item) => item[key] || "").join(", ");
+
+    const payload = {
+      sellingPartner: extract("sellingPartner"),
+      aaNo: extract("aA_Number"),
+      imeiNo: extract("imeiNumber"),
+      creationDate: new Date().toISOString(),
+      closureDate: null,
+      customerName: extract("customerName"),
+      serviceType: extract("serviceType"),
+      brand: extract("brand"),
+      makeModel: extract("makeModel"),
+      repairCharges: extract("repairCharges"),
+      serviceCharges: extract("serviceCharges"),
+      total: extract("total"),
+      invoiceStatus: "Invoice Uploaded",
+      batchNo: batchData?.batchNo || "",
+      selectedService: null,
+      totalRepairCharges: totalRepairCharges.toFixed(2),
+      totalServiceCharges: totalServiceCharges.toFixed(2),
+      finalAmount: finalAmount.toString(),
+      gst: null,
+      invoiceNo: invoiceNo || "",
+      invoiceDate: invoiceDate || "",
+      invoiceAmount: invoiceAmount || "",
+      invoice: existingInvoice?.url || "",
+      vendorName: batchData?.vendorName || "",
+      caseCount: filteredSelected.length,
+      remarks: extract("remarks"),
+      type,
+      isSendBack,
+      isPartial,
+      // reason: reason.trim(),
+    };
+
     try {
-      const selected = invoices.filter((inv) => inv.isChecked);
-      if (selected.length === 0) {
-        toast.error("Please select at least one invoice to send back.");
-        return;
-      }
-
-      const reason = prompt("Please provide a reason for sending back:");
-      if (!reason || !reason.trim()) {
-        toast.error("A reason is required to send back the batch.");
-        return;
-      }
-
-      const formData = new FormData();
-      const extract = (key) =>
-        selected.map((item) => item[key] || "").join(",");
-      formData.append("AANo", extract("aA_Number"));
-      formData.append("BatchNo", batchData?.batchNo || "");
-      formData.append("VendorName", batchData?.vendorName || "");
-      formData.append("Reason", reason.trim());
-      formData.append("InvoiceStatus", "Sent Back");
-      formData.append("Remarks", extract("remarks"));
-      formData.append("IMEINo", extract("imeiNumber"));
-      formData.append("CustomerName", extract("customerName"));
-      formData.append("ServiceType", extract("serviceType"));
-      formData.append("Brand", extract("brand"));
-      formData.append("MakeModel", extract("makeModel"));
-      formData.append("RepairCharges", extract("repairCharges"));
-      formData.append("ServiceCharges", extract("serviceCharges"));
-      formData.append("ChargesInclGST", extract("chargesInclGST"));
-      formData.append("Total", extract("total"));
-      formData.append("CreationDate", extract("creationDate"));
-      formData.append("ClosureDate", extract("closureDate"));
-      formData.append("SellingPartner", extract("sellingPartner"));
-      formData.append("InvoiceNo", invoiceNo || "");
-      formData.append("InvoiceDate", invoiceDate || "");
-      formData.append("InvoiceAmount", invoiceAmount || "");
-      formData.append("FinalAmount", finalAmount);
-      formData.append("TotalRepairCharges", totalRepairCharges.toFixed(2));
-      formData.append("TotalServiceCharges", totalServiceCharges.toFixed(2));
-      formData.append("CaseCount", caseCount || selected.length.toString());
-      if (existingInvoice.url) {
-        formData.append("ExistingInvoiceUrl", existingInvoice.url);
-      }
-
       setLoading(true);
-      const response = await fetch(`${BASE_URL}/SendBackApprovalBatch`, {
+      const response = await fetch(`${BASE_URL}/DeleteAndInsertBatchData`, {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
+
       const result = await response.json();
       setLoading(false);
 
       if (!response.ok) {
-        toast.error("Error sending back batch: " + (result.message || "Unknown error"));
+        toast.error("Error: " + (result.message || "Unknown error"));
         return;
       }
 
-      toast.success("Batch sent back successfully.");
-      navigate("/approval", { state: { updatedInvoices: invoices } });
+      toast.success("Send submitted successfully.");
+
+      if (isSendBack) {
+        navigate("/sendBackByapproval", {
+          state: { updatedInvoices: invoices },
+        });
+      } else if (isPartial) {
+        navigate("/partialApproval", {
+          state: { updatedInvoices: invoices },
+        });
+
+      }
     } catch (error) {
-      console.error("Send Back failed:", error);
+      console.error("Send failed:", error);
       setLoading(false);
-      toast.error("Send Back failed. Please check console for details.");
+      toast.error("Send failed. Check console for details.");
     }
   };
 
-  const handleSendPartial = async () => {
-    try {
-      const selected = invoices.filter((inv) => inv.isChecked);
-      if (selected.length === 0) {
-        toast.error("Please select at least one invoice to send partially.");
-        return;
-      }
+  // const handleSendPartial = async () => {
+  //   try {
+  //     const selected = invoices.filter((inv) => inv.isChecked);
+  //     if (selected.length === 0) {
+  //       toast.error("Please select at least one invoice to send partially.");
+  //       return;
+  //     }
 
-      const reason = prompt("Please provide a reason for sending partially:");
-      if (!reason || !reason.trim()) {
-        toast.error("A reason is required to send partial batch.");
-        return;
-      }
+  //     const reason = prompt("Please provide a reason for sending partially:");
+  //     if (!reason || !reason.trim()) {
+  //       toast.error("A reason is required to send partial batch.");
+  //       return;
+  //     }
 
-      const formData = new FormData();
-      const extract = (key) =>
-        selected.map((item) => item[key] || "").join(",");
-      formData.append("AANo", extract("aA_Number"));
-      formData.append("BatchNo", batchData?.batchNo || "");
-      formData.append("VendorName", batchData?.vendorName || "");
-      formData.append("Reason", reason.trim());
-      formData.append("InvoiceStatus", "Partially Sent");
-      formData.append("Remarks", extract("remarks"));
-      formData.append("IMEINo", extract("imeiNumber"));
-      formData.append("CustomerName", extract("customerName"));
-      formData.append("ServiceType", extract("serviceType"));
-      formData.append("Brand", extract("brand"));
-      formData.append("MakeModel", extract("makeModel"));
-      formData.append("RepairCharges", extract("repairCharges"));
-      formData.append("ServiceCharges", extract("serviceCharges"));
-      formData.append("ChargesInclGST", extract("chargesInclGST"));
-      formData.append("Total", extract("total"));
-      formData.append("CreationDate", extract("creationDate"));
-      formData.append("ClosureDate", extract("closureDate"));
-      formData.append("SellingPartner", extract("sellingPartner"));
-      formData.append("InvoiceNo", invoiceNo || "");
-      formData.append("InvoiceDate", invoiceDate || "");
-      formData.append("InvoiceAmount", invoiceAmount || "");
-      formData.append("FinalAmount", finalAmount);
-      formData.append("TotalRepairCharges", totalRepairCharges.toFixed(2));
-      formData.append("TotalServiceCharges", totalServiceCharges.toFixed(2));
-      formData.append("CaseCount", caseCount || selected.length.toString());
-      if (existingInvoice.url) {
-        formData.append("ExistingInvoiceUrl", existingInvoice.url);
-      }
+  //     const formData = new FormData();
+  //     const extract = (key) =>
+  //       selected.map((item) => item[key] || "").join(",");
+  //     formData.append("AANo", extract("aA_Number"));
+  //     formData.append("BatchNo", batchData?.batchNo || "");
+  //     formData.append("VendorName", batchData?.vendorName || "");
+  //     formData.append("Reason", reason.trim());
+  //     formData.append("InvoiceStatus", "Partially Sent");
+  //     formData.append("Remarks", extract("remarks"));
+  //     formData.append("IMEINo", extract("imeiNumber"));
+  //     formData.append("CustomerName", extract("customerName"));
+  //     formData.append("ServiceType", extract("serviceType"));
+  //     formData.append("Brand", extract("brand"));
+  //     formData.append("MakeModel", extract("makeModel"));
+  //     formData.append("RepairCharges", extract("repairCharges"));
+  //     formData.append("ServiceCharges", extract("serviceCharges"));
+  //     formData.append("ChargesInclGST", extract("chargesInclGST"));
+  //     formData.append("Total", extract("total"));
+  //     formData.append("CreationDate", extract("creationDate"));
+  //     formData.append("ClosureDate", extract("closureDate"));
+  //     formData.append("SellingPartner", extract("sellingPartner"));
+  //     formData.append("InvoiceNo", invoiceNo || "");
+  //     formData.append("InvoiceDate", invoiceDate || "");
+  //     formData.append("InvoiceAmount", invoiceAmount || "");
+  //     formData.append("FinalAmount", finalAmount);
+  //     formData.append("TotalRepairCharges", totalRepairCharges.toFixed(2));
+  //     formData.append("TotalServiceCharges", totalServiceCharges.toFixed(2));
+  //     formData.append("CaseCount", caseCount || selected.length.toString());
+  //     if (existingInvoice.url) {
+  //       formData.append("ExistingInvoiceUrl", existingInvoice.url);
+  //     }
 
-      setLoading(true);
-      const response = await fetch(`${BASE_URL}/SendPartialApprovalBatch`, {
-        method: "POST",
-        body: formData,
-      });
-      const result = await response.json();
-      setLoading(false);
+  //     setLoading(true);
+  //     const response = await fetch(`${BASE_URL}/SendPartialApprovalBatch`, {
+  //       method: "POST",
+  //       body: formData,
+  //     });
+  //     const result = await response.json();
+  //     setLoading(false);
 
-      if (!response.ok) {
-        toast.error("Error sending partial batch: " + (result.message || "Unknown error"));
-        return;
-      }
+  //     if (!response.ok) {
+  //       toast.error("Error sending partial batch: " + (result.message || "Unknown error"));
+  //       return;
+  //     }
 
-      toast.success("Batch sent partially successfully.");
-      navigate("/approval", { state: { updatedInvoices: invoices } });
-    } catch (error) {
-      console.error("Send Partial failed:", error);
-      setLoading(false);
-      toast.error("Send Partial failed. Please check console for details.");
-    }
-  };
+  //     toast.success("Batch sent partially successfully.");
+  //     navigate("/approval", { state: { updatedInvoices: invoices } });
+  //   } catch (error) {
+  //     console.error("Send Partial failed:", error);
+  //     setLoading(false);
+  //     toast.error("Send Partial failed. Please check console for details.");
+  //   }
+  // };
 
   return (
     <>
@@ -2544,9 +2574,8 @@ function ApprovalBatchPage() {
                     <label className="me-2 fw-semibold w-50">Case Count</label>
                     <input
                       type="text"
-                      className={`form-control border-dark ${
-                        (uploadedFile || !existingInvoice.url) && fieldErrors.caseCount ? "is-invalid" : ""
-                      }`}
+                      className={`form-control border-dark ${(uploadedFile || !existingInvoice.url) && fieldErrors.caseCount ? "is-invalid" : ""
+                        }`}
                       placeholder="Case Count"
                       value={caseCount}
                       onChange={(e) => {
@@ -2570,9 +2599,8 @@ function ApprovalBatchPage() {
                     <label className="me-2 fw-semibold w-50">Invoice No</label>
                     <input
                       type="text"
-                      className={`form-control border-dark ${
-                        (uploadedFile || !existingInvoice.url) && fieldErrors.invoiceNo ? "is-invalid" : ""
-                      }`}
+                      className={`form-control border-dark ${(uploadedFile || !existingInvoice.url) && fieldErrors.invoiceNo ? "is-invalid" : ""
+                        }`}
                       placeholder="Invoice No"
                       value={invoiceNo}
                       onChange={(e) => {
@@ -2596,9 +2624,8 @@ function ApprovalBatchPage() {
                     <label className="me-2 fw-semibold w-50">Invoice Date</label>
                     <input
                       type="date"
-                      className={`form-control border-dark ${
-                        (uploadedFile || !existingInvoice.url) && fieldErrors.invoiceDate ? "is-invalid" : ""
-                      }`}
+                      className={`form-control border-dark ${(uploadedFile || !existingInvoice.url) && fieldErrors.invoiceDate ? "is-invalid" : ""
+                        }`}
                       value={invoiceDate}
                       onChange={(e) => {
                         const value = e.target.value;
@@ -2622,11 +2649,10 @@ function ApprovalBatchPage() {
                     <label className="me-2 fw-semibold w-50">Invoice Amount</label>
                     <input
                       type="text"
-                      className={`form-control border-dark ${
-                        (uploadedFile || !existingInvoice.url) && (fieldErrors.invoiceAmount || amountError)
+                      className={`form-control border-dark ${(uploadedFile || !existingInvoice.url) && (fieldErrors.invoiceAmount || amountError)
                           ? "is-invalid"
                           : ""
-                      }`}
+                        }`}
                       placeholder="Enter Amount"
                       value={invoiceAmount}
                       onChange={(e) => {
@@ -2694,7 +2720,7 @@ function ApprovalBatchPage() {
                 <span>{loading ? "Submitting..." : "Save"}</span>
               </Button>
               <Button
-                onClick={handleSendBack}
+                onClick={() => handleSendAction("Send Back")}
                 className="d-flex align-items-center"
                 style={{
                   backgroundColor: "#8000d7",
@@ -2709,7 +2735,7 @@ function ApprovalBatchPage() {
                 <span>{loading ? "Submitting..." : "Send Back"}</span>
               </Button>
               <Button
-                onClick={handleSendPartial}
+                onClick={() => handleSendAction("Send Partial")}
                 className="d-flex align-items-center"
                 style={{
                   backgroundColor: "#8000d7",

@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const BASE_URL = "https://mintflix.live:8086/api/Auto";
+export const BASE_URL = "https://mintflix.live:8086/api/Auto";
 
 /*********************************************************
  * Function to review batch to get invoice batch data

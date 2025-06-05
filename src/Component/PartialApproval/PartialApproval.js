@@ -3,6 +3,7 @@ import { FaFilePdf, FaEye, FaSearch, FaRegCalendarAlt } from "react-icons/fa";
 import { Dropdown, Table, Button } from "react-bootstrap";
 import { FaChevronDown } from "react-icons/fa";
 import {
+  BASE_URL,
  GetPartialApprovedInvoiceData,
   updateInvoiceStatusNetworkForApproved,
 } from "../../api/api";
@@ -27,23 +28,25 @@ function PartialApproval() {
   };
 
   // Fetch API data on component mount
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await GetPartialApprovedInvoiceData();
-        console.log("API Response reject data :", response);
-        if (response?.dataItems) {
-          setInvoices(response.dataItems);
-        } else {
-          toast.error("No data received from API");
+   useEffect(() => {
+      const fetchData = async () => {
+        try {
+          const response = await fetch(`${BASE_URL}/GetAllBackPartialData`);
+          const result = await response.json();
+          if (result.status) {
+            const sendpartialData = result.data.filter(item => item.type === 'Send Partial');
+            setInvoices(sendpartialData);
+          } else {
+            toast.error('Failed to fetch data.');
+          }
+        } catch (error) {
+          console.error('Error fetching data:', error);
+          toast.error('An error occurred while fetching data.');
         }
-      } catch (error) {
-        console.error("Failed to fetch approval batch data:", error);
-        toast.error("Failed to fetch data");
-      }
-    };
-    fetchData();
-  }, []);
+      };
+  
+      fetchData();
+    }, []);
 
   // Format date to DD-MM-YYYY
   const formatDate = (dateTimeStr) => {
@@ -346,7 +349,7 @@ function PartialApproval() {
                         <FaEye
                           className="text-purple review_fa_eye"
                           onClick={() => {
-                            navigate("/approvalBatchPage", {
+                            navigate("/partialDetailPage", {
                               state: { batchData: invoice },
                             });
                           }}

@@ -4,6 +4,13 @@ import topLogo from "../images/headerimg.png";
 import CancelIcon from "@mui/icons-material/Cancel";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import PauseCircleOutlineIcon from "@mui/icons-material/PauseCircleOutline";
+import UndoIcon from '@mui/icons-material/Undo';
+import BlockIcon from '@mui/icons-material/Block';
+import HourglassBottomIcon from '@mui/icons-material/HourglassBottom';
+import PendingActionsIcon from '@mui/icons-material/PendingActions';
+import ReportProblemIcon from '@mui/icons-material/ReportProblem';
+import PendingIcon from '@mui/icons-material/Pending';
+
 import ReportProblemOutlinedIcon from "@mui/icons-material/ReportProblemOutlined";
 import {
   Drawer,
@@ -111,7 +118,7 @@ const Sidebar = ({ open, toggleSidebar }) => {
               }}
             >
               <ListItemIcon style={{ minWidth: "40px" }}>
-                <CheckCircleIcon />
+                <PendingIcon />
               </ListItemIcon>
               <ListItemText primary="Pending Approval" />
             </ListItem>
@@ -132,7 +139,7 @@ const Sidebar = ({ open, toggleSidebar }) => {
               }}
             >
               <ListItemIcon style={{ minWidth: "40px" }}>
-                <CancelIcon />
+                <HourglassBottomIcon />
               </ListItemIcon>
               <ListItemText primary="Partial Approval" />
             </ListItem>
@@ -174,7 +181,7 @@ const Sidebar = ({ open, toggleSidebar }) => {
               }}
             >
               <ListItemIcon style={{ minWidth: "40px" }}>
-                <CancelIcon />
+                <UndoIcon />
               </ListItemIcon>
               <ListItemText  primary="Back From Approval" />
             </ListItem>
@@ -240,7 +247,7 @@ const Sidebar = ({ open, toggleSidebar }) => {
               }}
             >
               <ListItemIcon style={{ minWidth: "40px" }}>
-                <ReportProblemOutlinedIcon />
+                <ReportProblemIcon />
               </ListItemIcon>
               <ListItemText primary="Concerns" />
             </ListItem>
@@ -262,7 +269,7 @@ const Sidebar = ({ open, toggleSidebar }) => {
               }}
             >
               <ListItemIcon style={{ minWidth: "40px" }}>
-                <ReportProblemOutlinedIcon />
+                <BlockIcon />
               </ListItemIcon>
               <ListItemText primary="Bank Reject" />
             </ListItem>

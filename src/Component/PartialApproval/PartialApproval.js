@@ -4,7 +4,7 @@ import { Dropdown, Table, Button } from "react-bootstrap";
 import { FaChevronDown } from "react-icons/fa";
 import {
   BASE_URL,
- GetPartialApprovedInvoiceData,
+  GetPartialApprovedInvoiceData,
   updateInvoiceStatusNetworkForApproved,
 } from "../../api/api";
 import { toast, ToastContainer } from "react-toastify";
@@ -12,6 +12,7 @@ import pdfimage from "../images/pdf_downlaod.png";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { useNavigate } from "react-router-dom";
+import { IconButton } from "@mui/material";
 
 function PartialApproval() {
   const navigate = useNavigate();
@@ -28,25 +29,27 @@ function PartialApproval() {
   };
 
   // Fetch API data on component mount
-   useEffect(() => {
-      const fetchData = async () => {
-        try {
-          const response = await fetch(`${BASE_URL}/GetAllBackPartialData`);
-          const result = await response.json();
-          if (result.status) {
-            const sendpartialData = result.data.filter(item => item.type === 'Send Partial');
-            setInvoices(sendpartialData);
-          } else {
-            toast.error('Failed to fetch data.');
-          }
-        } catch (error) {
-          console.error('Error fetching data:', error);
-          toast.error('An error occurred while fetching data.');
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await fetch(`${BASE_URL}/GetAllBackPartialData`);
+        const result = await response.json();
+        if (result.status) {
+          const sendpartialData = result.data.filter(
+            (item) => item.type === "Send Partial"
+          );
+          setInvoices(sendpartialData);
+        } else {
+          toast.error("Failed to fetch data.");
         }
-      };
-  
-      fetchData();
-    }, []);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        toast.error("An error occurred while fetching data.");
+      }
+    };
+
+    fetchData();
+  }, []);
 
   // Format date to DD-MM-YYYY
   const formatDate = (dateTimeStr) => {
@@ -346,14 +349,17 @@ function PartialApproval() {
                       className="text-center border-bottom network_td_item"
                     >
                       <td className="border-start align-middle cursor-pointer">
-                        <FaEye
-                          className="text-purple review_fa_eye"
-                          onClick={() => {
-                            navigate("/partialDetailPage", {
-                              state: { batchData: invoice },
-                            });
-                          }}
-                        />
+                        <IconButton>
+                          <FaEye
+                            size={20}
+                            className="text-purple review_fa_eye"
+                            onClick={() => {
+                              navigate("/partialDetailPage", {
+                                state: { batchData: invoice },
+                              });
+                            }}
+                          />
+                        </IconButton>
                       </td>
                       <td className="align-middle">
                         {invoice.batchNo || "--"}

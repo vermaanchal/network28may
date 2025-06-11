@@ -1,37 +1,42 @@
-
-import React, { useState, useContext } from 'react';
-import { CssBaseline, Box, useMediaQuery, CircularProgress, Typography } from '@mui/material';
-import { Routes, Route, Navigate } from 'react-router-dom';
-import Header from './Component/Header/header';
-import Sidebar from './Component/Sidebar/sidebar';
-import Review_batches from './Component/Review batches/review_batches';
-import Approval from './Component/Approval/approval';
-import Vendor_name from './Component/Vandor Name/vendor_name';
-import Reajectedcases from './Component/Reajected Cases/reajectedcases';
-import InvoiceTemplate from './Component/InvoiceTemplate/Invoice_template';
-import QueryCase from './Component/Query case/queryCase';
-import HoldCase from './Component/Hold Cases/holdcase';
-import Concern from './Component/Concern/concern';
-import BankReject from './Component/BankReject/BankReject';
-import Login from './Component/Login/Login';
-import Unauthorized from './Component/Unauthorized';
-import ProtectedRoute from './Component/ProtectedRoute';
-import '../node_modules/bootstrap/dist/css/bootstrap.min.css';
-import { ToastContainer } from 'react-toastify';
-import { AuthContext } from './context/AuthContext';
-import EditData from './Component/Review batches/EditData';
-import PartialApproval from './Component/PartialApproval/PartialApproval';
-import VendorBatchPage from './Component/Vandor Name/VendorBatchPage';
-import ReviewBatchPage from './Component/Review batches/ReviewBatchPage';
-import ApprovalBatchPage from './Component/Approval/ApprovalBatchPage';
-import GetNetworkReject from './Component/getnetworkReject/GetNetworkReject';
-import SendBackByApproval from './Component/SendBackByApproval/SendBackByApproval';
-import PartialDetailPage from './Component/PartialApproval/PartialDetailPage';
-import SendbackDetailPage from './Component/SendBackByApproval/SendBackDetailPage';
+import React, { useState, useContext } from "react";
+import {
+  CssBaseline,
+  Box,
+  useMediaQuery,
+  CircularProgress,
+  Typography,
+} from "@mui/material";
+import { Routes, Route, Navigate } from "react-router-dom";
+import Header from "./Component/Header/header";
+import Sidebar from "./Component/Sidebar/sidebar";
+import Review_batches from "./Component/Review batches/review_batches";
+import Approval from "./Component/Approval/approval";
+import Vendor_name from "./Component/Vandor Name/vendor_name";
+import Reajectedcases from "./Component/Reajected Cases/reajectedcases";
+import InvoiceTemplate from "./Component/InvoiceTemplate/Invoice_template";
+import QueryCase from "./Component/Query case/queryCase";
+import HoldCase from "./Component/Hold Cases/holdcase";
+import Concern from "./Component/Concern/concern";
+import BankReject from "./Component/BankReject/BankReject";
+import Login from "./Component/Login/Login";
+import Unauthorized from "./Component/Unauthorized";
+import ProtectedRoute from "./Component/ProtectedRoute";
+import "../node_modules/bootstrap/dist/css/bootstrap.min.css";
+import { ToastContainer } from "react-toastify";
+import { AuthContext } from "./context/AuthContext";
+import EditData from "./Component/Review batches/EditData";
+import PartialApproval from "./Component/PartialApproval/PartialApproval";
+import VendorBatchPage from "./Component/Vandor Name/VendorBatchPage";
+import ReviewBatchPage from "./Component/Review batches/ReviewBatchPage";
+import ApprovalBatchPage from "./Component/Approval/ApprovalBatchPage";
+import GetNetworkReject from "./Component/getnetworkReject/GetNetworkReject";
+import SendBackByApproval from "./Component/SendBackByApproval/SendBackByApproval";
+import PartialDetailPage from "./Component/PartialApproval/PartialDetailPage";
+import SendbackDetailPage from "./Component/SendBackByApproval/SendBackDetailPage";
 
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const isMobile = useMediaQuery('(max-width: 768px)');
+  const isMobile = useMediaQuery("(max-width: 768px)");
   const { loading, user } = useContext(AuthContext); // Access loading state
 
   const toggleSidebar = () => {
@@ -41,7 +46,14 @@ function App() {
   // Render a loading indicator while checking localStorage
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100vh",
+        }}
+      >
         <CircularProgress />
         <Typography sx={{ ml: 2 }}>Loading...</Typography>
       </Box>
@@ -49,7 +61,7 @@ function App() {
   }
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+    <Box sx={{ display: "flex", minHeight: "100vh" }}>
       <CssBaseline />
       <ToastContainer position="top-right" autoClose={3000} />
       <Routes>
@@ -70,18 +82,18 @@ function App() {
                     component="main"
                     sx={{
                       flexGrow: 1,
-                      marginLeft: sidebarOpen && !isMobile ? '0px' : 0,
-                      width: '100%',
-                      marginTop: '64px',
+                      marginLeft: sidebarOpen && !isMobile ? "0px" : 0,
+                      width: "100%",
+                      marginTop: "64px",
                       overflowX: "scroll",
-                      transition: 'margin 0.3s ease-in-out',
+                      transition: "margin 0.3s ease-in-out",
                     }}
                   >
                     <Review_batches />
                   </Box>
                 </>
               }
-              allowedRoles={['NetworkSubAdmin', 'NetworkAdmin']} // Allow both roles
+              allowedRoles={["NetworkSubAdmin", "NetworkAdmin"]} // Allow both roles
             />
           }
         />
@@ -97,18 +109,18 @@ function App() {
                     component="main"
                     sx={{
                       flexGrow: 1,
-                      marginLeft: sidebarOpen && !isMobile ? '0px' : 0,
-                      width: '100%',
-                      marginTop: '64px',
+                      marginLeft: sidebarOpen && !isMobile ? "0px" : 0,
+                      width: "100%",
+                      marginTop: "64px",
                       overflowX: "scroll",
-                      transition: 'margin 0.3s ease-in-out',
+                      transition: "margin 0.3s ease-in-out",
                     }}
                   >
                     <ReviewBatchPage />
                   </Box>
                 </>
               }
-              allowedRoles={['NetworkSubAdmin', 'NetworkAdmin']} // Allow both roles
+              allowedRoles={["NetworkSubAdmin", "NetworkAdmin"]} // Allow both roles
             />
           }
         />
@@ -124,17 +136,17 @@ function App() {
                     component="main"
                     sx={{
                       flexGrow: 1,
-                      marginLeft: sidebarOpen && !isMobile ? '0px' : 0,
-                      width: '100%',
-                      marginTop: '64px',
-                      transition: 'margin 0.3s ease-in-out',
+                      marginLeft: sidebarOpen && !isMobile ? "0px" : 0,
+                      width: "100%",
+                      marginTop: "64px",
+                      transition: "margin 0.3s ease-in-out",
                     }}
                   >
                     <Approval />
                   </Box>
                 </>
               }
-              allowedRoles={['NetworkSubAdmin', 'NetworkAdmin']}
+              allowedRoles={["NetworkSubAdmin", "NetworkAdmin"]}
             />
           }
         />
@@ -150,17 +162,17 @@ function App() {
                     component="main"
                     sx={{
                       flexGrow: 1,
-                      marginLeft: sidebarOpen && !isMobile ? '0px' : 0,
-                      width: '100%',
-                      marginTop: '64px',
-                      transition: 'margin 0.3s ease-in-out',
+                      marginLeft: sidebarOpen && !isMobile ? "0px" : 0,
+                      width: "100%",
+                      marginTop: "64px",
+                      transition: "margin 0.3s ease-in-out",
                     }}
                   >
                     <ApprovalBatchPage />
                   </Box>
                 </>
               }
-              allowedRoles={['NetworkAdmin']}
+              allowedRoles={["NetworkAdmin"]}
             />
           }
         />
@@ -176,17 +188,17 @@ function App() {
                     component="main"
                     sx={{
                       flexGrow: 1,
-                      marginLeft: sidebarOpen && !isMobile ? '0px' : 0,
-                      width: '100%',
-                      marginTop: '64px',
-                      transition: 'margin 0.3s ease-in-out',
+                      marginLeft: sidebarOpen && !isMobile ? "0px" : 0,
+                      width: "100%",
+                      marginTop: "64px",
+                      transition: "margin 0.3s ease-in-out",
                     }}
                   >
                     <Vendor_name />
                   </Box>
                 </>
               }
-              allowedRoles={['NetworkSubAdmin', 'NetworkAdmin']}// Restrict to NetworkAdmin
+              allowedRoles={["NetworkSubAdmin", "NetworkAdmin"]} // Restrict to NetworkAdmin
             />
           }
         />
@@ -202,17 +214,17 @@ function App() {
                     component="main"
                     sx={{
                       flexGrow: 1,
-                      marginLeft: sidebarOpen && !isMobile ? '0px' : 0,
-                      width: '100%',
-                      marginTop: '64px',
-                      transition: 'margin 0.3s ease-in-out',
+                      marginLeft: sidebarOpen && !isMobile ? "0px" : 0,
+                      width: "100%",
+                      marginTop: "64px",
+                      transition: "margin 0.3s ease-in-out",
                     }}
                   >
                     <VendorBatchPage />
                   </Box>
                 </>
               }
-              allowedRoles={['NetworkSubAdmin', 'NetworkAdmin']}
+              allowedRoles={["NetworkSubAdmin", "NetworkAdmin"]}
             />
           }
         />
@@ -228,17 +240,17 @@ function App() {
                     component="main"
                     sx={{
                       flexGrow: 1,
-                      marginLeft: sidebarOpen && !isMobile ? '0px' : 0,
-                      width: '100%',
-                      marginTop: '64px',
-                      transition: 'margin 0.3s ease-in-out',
+                      marginLeft: sidebarOpen && !isMobile ? "0px" : 0,
+                      width: "100%",
+                      marginTop: "64px",
+                      transition: "margin 0.3s ease-in-out",
                     }}
                   >
                     <InvoiceTemplate />
                   </Box>
                 </>
               }
-              allowedRoles={['NetworkSubAdmin', 'NetworkAdmin']}
+              allowedRoles={["NetworkSubAdmin", "NetworkAdmin"]}
             />
           }
         />
@@ -254,17 +266,17 @@ function App() {
                     component="main"
                     sx={{
                       flexGrow: 1,
-                      marginLeft: sidebarOpen && !isMobile ? '0px' : 0,
-                      width: '100%',
-                      marginTop: '64px',
-                      transition: 'margin 0.3s ease-in-out',
+                      marginLeft: sidebarOpen && !isMobile ? "0px" : 0,
+                      width: "100%",
+                      marginTop: "64px",
+                      transition: "margin 0.3s ease-in-out",
                     }}
                   >
                     <EditData />
                   </Box>
                 </>
               }
-              allowedRoles={['NetworkSubAdmin', 'NetworkAdmin']}
+              allowedRoles={["NetworkSubAdmin", "NetworkAdmin"]}
             />
           }
         />
@@ -280,17 +292,17 @@ function App() {
                     component="main"
                     sx={{
                       flexGrow: 1,
-                      marginLeft: sidebarOpen && !isMobile ? '0px' : 0,
-                      width: '100%',
-                      marginTop: '64px',
-                      transition: 'margin 0.3s ease-in-out',
+                      marginLeft: sidebarOpen && !isMobile ? "0px" : 0,
+                      width: "100%",
+                      marginTop: "64px",
+                      transition: "margin 0.3s ease-in-out",
                     }}
                   >
                     <Reajectedcases />
                   </Box>
                 </>
               }
-              allowedRoles={['NetworkSubAdmin', 'NetworkAdmin']}
+              allowedRoles={["NetworkSubAdmin", "NetworkAdmin"]}
             />
           }
         />
@@ -306,17 +318,17 @@ function App() {
                     component="main"
                     sx={{
                       flexGrow: 1,
-                      marginLeft: sidebarOpen && !isMobile ? '0px' : 0,
-                      width: '100%',
-                      marginTop: '64px',
-                      transition: 'margin 0.3s ease-in-out',
+                      marginLeft: sidebarOpen && !isMobile ? "0px" : 0,
+                      width: "100%",
+                      marginTop: "64px",
+                      transition: "margin 0.3s ease-in-out",
                     }}
                   >
                     <QueryCase />
                   </Box>
                 </>
               }
-              allowedRoles={['NetworkSubAdmin', 'NetworkAdmin']}
+              allowedRoles={["NetworkSubAdmin", "NetworkAdmin"]}
             />
           }
         />
@@ -332,17 +344,17 @@ function App() {
                     component="main"
                     sx={{
                       flexGrow: 1,
-                      marginLeft: sidebarOpen && !isMobile ? '0px' : 0,
-                      width: '100%',
-                      marginTop: '64px',
-                      transition: 'margin 0.3s ease-in-out',
+                      marginLeft: sidebarOpen && !isMobile ? "0px" : 0,
+                      width: "100%",
+                      marginTop: "64px",
+                      transition: "margin 0.3s ease-in-out",
                     }}
                   >
                     <HoldCase />
                   </Box>
                 </>
               }
-              allowedRoles={['NetworkSubAdmin', 'NetworkAdmin']}
+              allowedRoles={["NetworkSubAdmin", "NetworkAdmin"]}
             />
           }
         />
@@ -358,17 +370,17 @@ function App() {
                     component="main"
                     sx={{
                       flexGrow: 1,
-                      marginLeft: sidebarOpen && !isMobile ? '0px' : 0,
-                      width: '100%',
-                      marginTop: '64px',
-                      transition: 'margin 0.3s ease-in-out',
+                      marginLeft: sidebarOpen && !isMobile ? "0px" : 0,
+                      width: "100%",
+                      marginTop: "64px",
+                      transition: "margin 0.3s ease-in-out",
                     }}
                   >
                     <Concern />
                   </Box>
                 </>
               }
-              allowedRoles={['NetworkSubAdmin', 'NetworkAdmin']}
+              allowedRoles={["NetworkSubAdmin", "NetworkAdmin"]}
             />
           }
         />
@@ -384,17 +396,17 @@ function App() {
                     component="main"
                     sx={{
                       flexGrow: 1,
-                      marginLeft: sidebarOpen && !isMobile ? '0px' : 0,
-                      width: '100%',
-                      marginTop: '64px',
-                      transition: 'margin 0.3s ease-in-out',
+                      marginLeft: sidebarOpen && !isMobile ? "0px" : 0,
+                      width: "100%",
+                      marginTop: "64px",
+                      transition: "margin 0.3s ease-in-out",
                     }}
                   >
                     <BankReject />
                   </Box>
                 </>
               }
-              allowedRoles={['NetworkSubAdmin', 'NetworkAdmin']}
+              allowedRoles={["NetworkSubAdmin", "NetworkAdmin"]}
             />
           }
         />
@@ -410,17 +422,17 @@ function App() {
                     component="main"
                     sx={{
                       flexGrow: 1,
-                      marginLeft: sidebarOpen && !isMobile ? '0px' : 0,
-                      width: '100%',
-                      marginTop: '64px',
-                      transition: 'margin 0.3s ease-in-out',
+                      marginLeft: sidebarOpen && !isMobile ? "0px" : 0,
+                      width: "100%",
+                      marginTop: "64px",
+                      transition: "margin 0.3s ease-in-out",
                     }}
                   >
                     <PartialApproval />
                   </Box>
                 </>
               }
-              allowedRoles={['NetworkSubAdmin', 'NetworkAdmin']}
+              allowedRoles={["NetworkSubAdmin", "NetworkAdmin"]}
             />
           }
         />
@@ -436,17 +448,17 @@ function App() {
                     component="main"
                     sx={{
                       flexGrow: 1,
-                      marginLeft: sidebarOpen && !isMobile ? '0px' : 0,
-                      width: '100%',
-                      marginTop: '64px',
-                      transition: 'margin 0.3s ease-in-out',
+                      marginLeft: sidebarOpen && !isMobile ? "0px" : 0,
+                      width: "100%",
+                      marginTop: "64px",
+                      transition: "margin 0.3s ease-in-out",
                     }}
                   >
                     <PartialDetailPage />
                   </Box>
                 </>
               }
-              allowedRoles={['NetworkAdmin']}
+              allowedRoles={["NetworkSubAdmin", "NetworkAdmin"]}
             />
           }
         />
@@ -462,17 +474,17 @@ function App() {
                     component="main"
                     sx={{
                       flexGrow: 1,
-                      marginLeft: sidebarOpen && !isMobile ? '0px' : 0,
-                      width: '100%',
-                      marginTop: '64px',
-                      transition: 'margin 0.3s ease-in-out',
+                      marginLeft: sidebarOpen && !isMobile ? "0px" : 0,
+                      width: "100%",
+                      marginTop: "64px",
+                      transition: "margin 0.3s ease-in-out",
                     }}
                   >
                     <SendBackByApproval />
                   </Box>
                 </>
               }
-              allowedRoles={['NetworkSubAdmin', 'NetworkAdmin']}
+              allowedRoles={["NetworkSubAdmin", "NetworkAdmin"]}
             />
           }
         />
@@ -488,17 +500,17 @@ function App() {
                     component="main"
                     sx={{
                       flexGrow: 1,
-                      marginLeft: sidebarOpen && !isMobile ? '0px' : 0,
-                      width: '100%',
-                      marginTop: '64px',
-                      transition: 'margin 0.3s ease-in-out',
+                      marginLeft: sidebarOpen && !isMobile ? "0px" : 0,
+                      width: "100%",
+                      marginTop: "64px",
+                      transition: "margin 0.3s ease-in-out",
                     }}
                   >
                     <SendbackDetailPage />
                   </Box>
                 </>
               }
-              allowedRoles={['NetworkAdmin']}
+              allowedRoles={["NetworkSubAdmin", "NetworkAdmin"]}
             />
           }
         />
@@ -514,17 +526,17 @@ function App() {
                     component="main"
                     sx={{
                       flexGrow: 1,
-                      marginLeft: sidebarOpen && !isMobile ? '0px' : 0,
-                      width: '100%',
-                      marginTop: '64px',
-                      transition: 'margin 0.3s ease-in-out',
+                      marginLeft: sidebarOpen && !isMobile ? "0px" : 0,
+                      width: "100%",
+                      marginTop: "64px",
+                      transition: "margin 0.3s ease-in-out",
                     }}
                   >
                     <GetNetworkReject />
                   </Box>
                 </>
               }
-              allowedRoles={['NetworkSubAdmin', 'NetworkAdmin']}
+              allowedRoles={["NetworkSubAdmin", "NetworkAdmin"]}
             />
           }
         />

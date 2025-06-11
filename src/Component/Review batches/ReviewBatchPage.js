@@ -1,5 +1,6 @@
+
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { Table, Form, Button } from "react-bootstrap";
+import { Table, Form, Button, Modal } from "react-bootstrap";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import {
@@ -24,6 +25,7 @@ const ReviewBatchPage = () => {
   const { selectedBatchData, vendorId, isExcelUpload } = state || {};
 
   const fileInputRef = useRef();
+  const modalFileInputRef = useRef();
   const [invoices, setInvoices] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [isGSTApplied, setIsGSTApplied] = useState(true);
@@ -45,8 +47,15 @@ const ReviewBatchPage = () => {
     uploadedFile: false,
     remarks: {},
   });
-  const [editingRow, setEditingRow] = useState(null);
-  const [editValues, setEditValues] = useState({});
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingInvoice, setEditingInvoice] = useState(null);
+  const [editValues, setEditValues] = useState({
+    serviceCharges: "",
+    repairCharges: "",
+    remarks: "",
+    file: null,
+    fileName: "",
+  });
 
   const itemsPerPage = 10;
   const totalPages = Math.ceil(invoices.length / itemsPerPage);
@@ -93,6 +102,17 @@ const ReviewBatchPage = () => {
       navigate("/");
       return;
     }
+    setInvoiceNo(selectedBatchData.invoiceNo || "");
+    setInvoiceDate(selectedBatchData.invoiceDate || "");
+    setInvoiceAmount(
+      selectedBatchData.invoiceAmount
+        ? selectedBatchData.invoiceAmount.toString()
+        : ""
+    );
+    setCaseCount(
+      selectedBatchData.caseCount ? selectedBatchData.caseCount.toString() : ""
+    );
+
     setIsLoading(true);
     if (selectedBatchData.aaNo) {
       const aaNumbers = selectedBatchData.aaNo
@@ -143,30 +163,36 @@ const ReviewBatchPage = () => {
     if (!selectedBatchData) return;
     const splitData = (key) =>
       selectedBatchData[key]?.split(",").map((val) => val.trim()) || [];
-    const invoicesArray = splitData("aaNo").map((_, i) => ({
-      aA_Number: splitData("aaNo")[i],
-      imeiNumber: splitData("imeiNo")[i],
-      creationDate: selectedBatchData.creationDate || "",
-      closureDate: selectedBatchData.closureDate || "",
-      customerName: splitData("customerName")[i],
-      serviceType: splitData("serviceType")[i],
-      brand: splitData("brand")[i],
-      makeModel: splitData("makeModel")[i],
-      repairCharges: splitData("repairCharges")[i]
-        ? parseFloat(splitData("repairCharges")[i]).toFixed(2)
-        : "0.00",
-      serviceCharges: splitData("serviceCharges")[i]
-        ? parseFloat(splitData("serviceCharges")[i]).toFixed(2)
-        : "0.00",
-      total: splitData("total")[i]
-        ? parseFloat(splitData("total")[i]).toFixed(2)
-        : "0.00",
-      invoiceStatus: selectedBatchData.invoiceStatus || "-",
-      sellingPartner: splitData("sellingPartner")[i],
-      batchNo: selectedBatchData.batchNo || "",
-      isChecked: true,
-      remarks: splitData("remarks")[i] || "",
-    }));
+    const invoicesArray = splitData("aaNo").map((_, i) => {
+      const remarkFileUrl = splitData("remarkFile")[i];
+      return {
+        aA_Number: splitData("aaNo")[i],
+        imeiNumber: splitData("imeiNo")[i],
+        creationDate: selectedBatchData.creationDate || "",
+        closureDate: selectedBatchData.closureDate || "",
+        customerName: splitData("customerName")[i],
+        serviceType: splitData("serviceType")[i],
+        brand: splitData("brand")[i],
+        makeModel: splitData("makeModel")[i],
+        repairCharges: splitData("repairCharges")[i]
+          ? parseFloat(splitData("repairCharges")[i]).toFixed(2)
+          : "0.00",
+        serviceCharges: splitData("serviceCharges")[i]
+          ? parseFloat(splitData("serviceCharges")[i]).toFixed(2)
+          : "0.00",
+        total: splitData("total")[i]
+          ? parseFloat(splitData("total")[i]).toFixed(2)
+          : "0.00",
+        invoiceStatus: selectedBatchData.invoiceStatus || "-",
+        sellingPartner: splitData("sellingPartner")[i],
+        batchNo: selectedBatchData.batchNo || "",
+        isChecked: true,
+        remarks: splitData("remarks")[i] || "",
+        remarkFile: remarkFileUrl
+          ? { name: remarkFileUrl.split("/").pop(), url: remarkFileUrl }
+          : null,
+      };
+    });
     setInvoices(invoicesArray);
   }, [selectedBatchData]);
 
@@ -198,7 +224,6 @@ const ReviewBatchPage = () => {
   );
 
   const getDifferencesData = (invoice) => {
-    console.log("Comparing invoice:", invoice);
     const matchedData = apiData.find(
       (item) => item && item.aA_Number === invoice.aA_Number
     );
@@ -292,10 +317,24 @@ const ReviewBatchPage = () => {
         header: true,
         complete: (results) => {
           const row = results.data[0];
-          setInvoiceNo(row["Invoice No"] || "");
-          setInvoiceDate(row["Invoice Date"] || "");
-          setInvoiceAmount(row["Invoice Amount"] || "");
-          setCaseCount(row["Case Count"] || "");
+          setInvoiceNo(row["Invoice No"] || selectedBatchData.invoiceNo || "");
+          setInvoiceDate(
+            row["Invoice Date"] || selectedBatchData.invoiceDate || ""
+          );
+          setInvoiceAmount(
+            row["Invoice Amount"]
+              ? row["Invoice Amount"].toString()
+              : selectedBatchData.invoiceAmount
+              ? selectedBatchData.invoiceAmount.toString()
+              : ""
+          );
+          setCaseCount(
+            row["Case Count"]
+              ? row["Case Count"].toString()
+              : selectedBatchData.caseCount
+              ? selectedBatchData.caseCount.toString()
+              : ""
+          );
         },
         error: (err) => {
           console.error("CSV parsing error:", err);
@@ -319,6 +358,7 @@ const ReviewBatchPage = () => {
       "Service Charges",
       "Total",
       "Remarks",
+      "Remark File",
     ];
     const today = new Date().toLocaleDateString("en-GB");
     const data = currentInvoices.map((invoice) => ({
@@ -334,6 +374,9 @@ const ReviewBatchPage = () => {
       serviceCharges: invoice.serviceCharges || "0.00",
       total: invoice.total || "0.00",
       remarks: invoice.remarks || "",
+      remarkFile: invoice.remarkFile
+        ? invoice.remarkFile.name || invoice.remarkFile
+        : "",
     }));
     const csv = Papa.unparse({
       fields: headers,
@@ -345,24 +388,30 @@ const ReviewBatchPage = () => {
 
   const handleSubmit = async () => {
     try {
-      // Ensure at least one invoice is selected
       const selected = invoices.filter((inv) => inv.isChecked);
       if (selected.length === 0) {
         toast.error("Please select at least one invoice.");
         return;
       }
 
-      // Initialize error state
+      const invoiceAmountStr = invoiceAmount ? invoiceAmount.toString() : "";
+      const caseCountStr = caseCount ? caseCount.toString() : "";
+
       const newErrors = {
         invoiceNo: !invoiceNo.trim(),
         invoiceDate: !invoiceDate,
-        invoiceAmount: !invoiceAmount.trim() || isNaN(parseFloat(invoiceAmount)) || parseFloat(invoiceAmount) <= 0,
-        caseCount: !caseCount.trim() || isNaN(parseInt(caseCount)) || parseInt(caseCount) <= 0,
+        invoiceAmount:
+          !invoiceAmountStr.trim() ||
+          isNaN(parseFloat(invoiceAmountStr)) ||
+          parseFloat(invoiceAmountStr) <= 0,
+        caseCount:
+          !caseCountStr.trim() ||
+          isNaN(parseInt(caseCountStr)) ||
+          parseInt(caseCountStr) <= 0,
         uploadedFile: !uploadedFile,
         remarks: {},
       };
 
-      // Validate remarks for yellow rows
       let hasRemarkError = false;
       selected.forEach((invoice) => {
         const isYellowRow = getRowClassName(invoice) === "row-yellow";
@@ -375,10 +424,8 @@ const ReviewBatchPage = () => {
         }
       });
 
-      // Update field errors in state
       setFieldErrors(newErrors);
 
-      // Display toast messages for each error
       if (newErrors.uploadedFile) {
         toast.error("Please upload an invoice file.");
       }
@@ -395,10 +442,11 @@ const ReviewBatchPage = () => {
         toast.error("Case Count must be a valid positive number.");
       }
       if (hasRemarkError) {
-        toast.error("Remarks are required for all yellow rows (mismatched data).");
+        toast.error(
+          "Remarks are required for all yellow rows (mismatched data)."
+        );
       }
 
-      // Prevent submission if any field is invalid
       if (
         Object.values(newErrors).some((error) => error === true) ||
         hasRemarkError
@@ -406,7 +454,6 @@ const ReviewBatchPage = () => {
         return;
       }
 
-      // Validate invoice date is not in the future
       const today = new Date().toISOString().split("T")[0];
       if (invoiceDate > today) {
         setFieldErrors((prev) => ({ ...prev, invoiceDate: true }));
@@ -414,26 +461,24 @@ const ReviewBatchPage = () => {
         return;
       }
 
-      // Validate case count matches selected invoices
-      const parsedCaseCount = parseInt(caseCount);
+      const parsedCaseCount = parseInt(caseCountStr);
       if (parsedCaseCount !== selected.length) {
         setFieldErrors((prev) => ({ ...prev, caseCount: true }));
-        toast.error("Case Count does not match the number of selected services.");
+        toast.error(
+          "Case Count does not match the number of selected services."
+        );
         return;
       }
 
-      // Validate invoice amount matches final amount (within 0.01 tolerance)
-      const parsedInvoiceAmount = parseFloat(invoiceAmount);
+      const parsedInvoiceAmount = parseFloat(invoiceAmountStr);
       if (Math.abs(parsedInvoiceAmount - parseFloat(finalAmount)) > 0.01) {
         setFieldErrors((prev) => ({ ...prev, invoiceAmount: true }));
         setAmountError("Invoice Amount and Final Amount do not match.");
-        toast.error("Invoice Amount and Final Amount do not match.");
         return;
       } else {
         setAmountError("");
       }
 
-      // Check for mismatches with API data
       let hasMismatch = false;
       for (const invoice of selected) {
         const matchedData = apiData.find(
@@ -447,9 +492,12 @@ const ReviewBatchPage = () => {
         }
 
         if (
-          normalize(matchedData.serviceType) !== normalize(invoice.serviceType) ||
-          normalize(matchedData.repairCharges) !== normalize(invoice.repairCharges) ||
-          normalize(matchedData.serviceCharges) !== normalize(invoice.serviceCharges) ||
+          normalize(matchedData.serviceType) !==
+            normalize(invoice.serviceType) ||
+          normalize(matchedData.repairCharges) !==
+            normalize(invoice.repairCharges) ||
+          normalize(matchedData.serviceCharges) !==
+            normalize(invoice.serviceCharges) ||
           normalize(matchedData.total) !== normalize(invoice.total)
         ) {
           hasMismatch = true;
@@ -463,7 +511,6 @@ const ReviewBatchPage = () => {
         if (!confirmProceed) return;
       }
 
-      // Prepare form data
       const formData = new FormData();
       const extract = (key) =>
         selected.map((item) => item[key] || "").join(", ");
@@ -491,13 +538,17 @@ const ReviewBatchPage = () => {
       );
       formData.append("InvoiceNo", invoiceNo);
       formData.append("InvoiceDate", invoiceDate);
-      formData.append("InvoiceAmount", invoiceAmount);
-      formData.append("CaseCount", caseCount);
+      formData.append("InvoiceAmount", invoiceAmountStr);
+      formData.append("CaseCount", caseCountStr);
       formData.append("IsGSTApplied", isGSTApplied ? "true" : "false");
       if (uploadedFile) {
         formData.append("Invoice", uploadedFile, uploadedFile.name);
       }
-
+       const invoiceWithFile = selected.find((inv) => inv.RemarkFile);
+      if (invoiceWithFile && invoiceWithFile.RemarkFile) {
+        formData.append(
+          "RemarkFile",invoiceWithFile.RemarkFile,invoiceWithFile.RemarkFile.name);
+        }
       setIsLoading(true);
       const response = await fetch(`${BASE_URL}/SaveApprovalBatchData`, {
         method: "POST",
@@ -521,15 +572,23 @@ const ReviewBatchPage = () => {
   };
 
   const handleEdit = (invoice) => {
-    setEditingRow(invoice.aA_Number);
+    setEditingInvoice(invoice);
     setEditValues({
       serviceCharges: invoice.serviceCharges || "0.00",
       repairCharges: invoice.repairCharges || "0.00",
       remarks: invoice.remarks || "",
+      file: invoice.remarkFile instanceof File ? invoice.remarkFile : null,
+      fileName:
+        invoice.remarkFile && typeof invoice.remarkFile === "object"
+          ? invoice.remarkFile.name
+          : invoice.remarkFile || "",
     });
+    setShowEditModal(true);
   };
 
-  const handleSaveEdit = (aA_Number) => {
+  const handleSaveEdit = () => {
+    if (!editingInvoice) return;
+
     const parsedServiceCharges = parseFloat(editValues.serviceCharges);
     const parsedRepairCharges = parseFloat(editValues.repairCharges);
     const remarks = editValues.remarks?.trim() || "";
@@ -546,13 +605,11 @@ const ReviewBatchPage = () => {
       return;
     }
 
-    // Check if the row is yellow
-    const invoice = invoices.find((inv) => inv.aA_Number === aA_Number);
-    const isYellowRow = getRowClassName(invoice) === "row-yellow";
+    const isYellowRow = getRowClassName(editingInvoice) === "row-yellow";
     if (isYellowRow && !remarks) {
       setFieldErrors((prev) => ({
         ...prev,
-        remarks: { ...prev.remarks, [aA_Number]: true },
+        remarks: { ...prev.remarks, [editingInvoice.aA_Number]: true },
       }));
       toast.error("Remarks are required for mismatched data.");
       return;
@@ -560,47 +617,88 @@ const ReviewBatchPage = () => {
 
     const formattedServiceCharges = parsedServiceCharges.toFixed(2);
     const formattedRepairCharges = parsedRepairCharges.toFixed(2);
-    const formattedTotal = (parsedServiceCharges + parsedRepairCharges).toFixed(2);
+    const formattedTotal = (parsedServiceCharges + parsedRepairCharges).toFixed(
+      2
+    );
 
     setInvoices((prevInvoices) =>
       prevInvoices.map((invoice) =>
-        invoice.aA_Number === aA_Number
+        invoice.aA_Number === editingInvoice.aA_Number
           ? {
               ...invoice,
               serviceCharges: formattedServiceCharges,
               repairCharges: formattedRepairCharges,
               total: formattedTotal,
               remarks: remarks,
+              remarkFile:
+                editValues.file ||
+                (typeof editValues.fileName === "string"
+                  ? { name: editValues.fileName, url: editValues.fileName }
+                  : null),
             }
           : invoice
       )
     );
-    setEditingRow(null);
-    setEditValues({});
     setFieldErrors((prev) => ({
       ...prev,
-      remarks: { ...prev.remarks, [aA_Number]: false },
+      remarks: { ...prev.remarks, [editingInvoice.aA_Number]: false },
     }));
-  };
-
-  const handleCancelEdit = () => {
-    setEditingRow(null);
-    setEditValues({});
+    setShowEditModal(false);
+    setEditingInvoice(null);
+    setEditValues({
+      serviceCharges: "",
+      repairCharges: "",
+      remarks: "",
+      file: null,
+      fileName: "",
+    });
   };
 
   const handleEditInputChange = (e) => {
     const { name, value } = e.target;
     setEditValues((prev) => ({ ...prev, [name]: value }));
-    if (name === "remarks") {
+    if (name === "remarks" && editingInvoice) {
       setFieldErrors((prev) => ({
         ...prev,
-        remarks: { ...prev.remarks, [editingRow]: !value.trim() },
+        remarks: { ...prev.remarks, [editingInvoice.aA_Number]: !value.trim() },
+      }));
+    }
+  };
+
+  const handleCloseModal = () => {
+    setShowEditModal(false);
+    setEditingInvoice(null);
+    setEditValues({
+      serviceCharges: "",
+      repairCharges: "",
+      remarks: "",
+      file: null,
+      fileName: "",
+    });
+    if (editingInvoice) {
+      setFieldErrors((prev) => ({
+        ...prev,
+        remarks: { ...prev.remarks, [editingInvoice.aA_Number]: false },
+      }));
+    }
+  };
+
+  const handeRemarkChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setEditValues((prev) => ({
+        ...prev,
+        file,
+        fileName: file.name,
       }));
     }
   };
 
   return (
-    <div className="container-fluid py-4" style={{ backgroundColor: "#f8f9fa" }}>
+    <div
+      className="container-fluid py-4"
+      style={{ backgroundColor: "#f8f9fa" }}
+    >
       <ToastContainer position="top-right" autoClose={3000} />
       <div className="card shadow-sm p-4">
         <div
@@ -634,13 +732,17 @@ const ReviewBatchPage = () => {
               {selectedBatchData?.batchNo && (
                 <div className="fw-semibold">
                   <span>Batch No: </span>
-                  <span className="text-primary">{selectedBatchData.batchNo}</span>
+                  <span className="text-primary">
+                    {selectedBatchData.batchNo}
+                  </span>
                 </div>
               )}
               {selectedBatchData?.vendorName && (
                 <div className="fw-semibold">
                   <span>Vendor: </span>
-                  <span className="text-success">{selectedBatchData.vendorName}</span>
+                  <span className="text-success">
+                    {selectedBatchData.vendorName}
+                  </span>
                 </div>
               )}
             </div>
@@ -722,6 +824,9 @@ const ReviewBatchPage = () => {
                     Remarks
                   </th>
                   <th className="border-end" style={{ whiteSpace: "nowrap" }}>
+                    Remark File
+                  </th>
+                  <th className="border-end" style={{ whiteSpace: "nowrap" }}>
                     Action
                   </th>
                 </tr>
@@ -729,7 +834,7 @@ const ReviewBatchPage = () => {
               <tbody>
                 {isLoading && (
                   <tr>
-                    <td colSpan="19" className="text-center py-3">
+                    <td colSpan="20" className="text-center py-3">
                       Validating data...
                     </td>
                   </tr>
@@ -798,36 +903,10 @@ const ReviewBatchPage = () => {
                         {invoice.makeModel || "-"}
                       </td>
                       <td className="align-middle">
-                        {editingRow === invoice.aA_Number ? (
-                          <input
-                            type="number"
-                            name="repairCharges"
-                            value={editValues.repairCharges || ""}
-                            onChange={handleEditInputChange}
-                            className="form-control"
-                            style={{ width: "100px", display: "inline-block" }}
-                            min="0"
-                            step="0.01"
-                          />
-                        ) : (
-                          invoice.repairCharges || "0.00"
-                        )}
+                        {invoice.repairCharges || "0.00"}
                       </td>
                       <td className="align-middle">
-                        {editingRow === invoice.aA_Number ? (
-                          <input
-                            type="number"
-                            name="serviceCharges"
-                            value={editValues.serviceCharges || ""}
-                            onChange={handleEditInputChange}
-                            className="form-control"
-                            style={{ width: "100px", display: "inline-block" }}
-                            min="0"
-                            step="0.01"
-                          />
-                        ) : (
-                          invoice.serviceCharges || "0.00"
-                        )}
+                        {invoice.serviceCharges || "0.00"}
                       </td>
                       <td className="align-middle">
                         {invoice.total || "0.00"}
@@ -901,58 +980,34 @@ const ReviewBatchPage = () => {
                         </div>
                       </td>
                       <td className="align-middle border-end">
-                        {editingRow === invoice.aA_Number ? (
-                          <div>
-                            <input
-                              type="text"
-                              name="remarks"
-                              value={editValues.remarks || ""}
-                              onChange={handleEditInputChange}
-                              className={`form-control ${fieldErrors.remarks[invoice.aA_Number] ? "is-invalid" : ""}`}
-                              style={{ width: "150px", display: "inline-block" }}
-                              placeholder="Enter remarks"
-                            />
-                            {fieldErrors.remarks[invoice.aA_Number] && (
-                              <div className="text-danger mt-1" style={{ fontSize: "12px" }}>
-                                Remarks are required for mismatched data.
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          <span>
-                            {invoice.remarks || "-"}
-                            {getRowClassName(invoice) === "row-yellow" && !invoice.remarks && (
+                        <span>
+                          {invoice.remarks || "-"}
+                          {getRowClassName(invoice) === "row-yellow" &&
+                            !invoice.remarks && (
                               <span className="text-danger ms-1">*</span>
                             )}
-                          </span>
-                        )}
+                        </span>
                       </td>
+
+                      <td className="align-middle border-end">
+                        <a
+                          href={invoice.remarkFile?.url || invoice.remarkFile}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          View
+                        </a>
+                      </td>
+
                       <td
                         className="align-middle border-end pointer-cursor"
                         style={{ cursor: "pointer" }}
                       >
-                        {editingRow === invoice.aA_Number ? (
-                          <>
-                            <FaSave
-                              size={25}
-                              className="text-green-500 me-2"
-                              style={{ cursor: "pointer", color: "green" }}
-                              onClick={() => handleSaveEdit(invoice.aA_Number)}
-                            />
-                            <FaTimes
-                              size={25}
-                              className="text-red-600"
-                              style={{ cursor: "pointer", color: "red" }}
-                              onClick={handleCancelEdit}
-                            />
-                          </>
-                        ) : (
-                          <FaTrash
-                            onClick={() => handleDelete(index)}
-                            size={25}
-                            style={{ color: "red" }}
-                          />
-                        )}
+                        <FaTrash
+                          onClick={() => handleDelete(index)}
+                          size={25}
+                          style={{ color: "red" }}
+                        />
                       </td>
                     </tr>
                   ))}
@@ -1065,7 +1120,9 @@ const ReviewBatchPage = () => {
                   <label className="me-2 fw-semibold w-50">Case Count</label>
                   <input
                     type="number"
-                    className={`form-control border-dark ${fieldErrors.caseCount ? "is-invalid" : ""}`}
+                    className={`form-control border-dark ${
+                      fieldErrors.caseCount ? "is-invalid" : ""
+                    }`}
                     placeholder="Enter Case Count"
                     value={caseCount}
                     onChange={(e) => {
@@ -1073,13 +1130,17 @@ const ReviewBatchPage = () => {
                       setCaseCount(value);
                       setFieldErrors((prev) => ({
                         ...prev,
-                        caseCount: !value.trim() || isNaN(value) || parseInt(value) <= 0,
+                        caseCount:
+                          !value.trim() || isNaN(value) || parseInt(value) <= 0,
                       }));
                     }}
                     min="0"
                   />
                   {fieldErrors.caseCount && (
-                    <div className="text-danger mt-1" style={{ fontSize: "14px" }}>
+                    <div
+                      className="text-danger mt-1"
+                      style={{ fontSize: "14px" }}
+                    >
                       Case Count must be a valid positive number.
                     </div>
                   )}
@@ -1088,7 +1149,9 @@ const ReviewBatchPage = () => {
                   <label className="me-2 fw-semibold w-50">Invoice No</label>
                   <input
                     type="text"
-                    className={`form-control border-dark ${fieldErrors.invoiceNo ? "is-invalid" : ""}`}
+                    className={`form-control border-dark ${
+                      fieldErrors.invoiceNo ? "is-invalid" : ""
+                    }`}
                     placeholder="Enter Invoice No"
                     value={invoiceNo}
                     onChange={(e) => {
@@ -1101,7 +1164,10 @@ const ReviewBatchPage = () => {
                     }}
                   />
                   {fieldErrors.invoiceNo && (
-                    <div className="text-danger mt-1" style={{ fontSize: "14px" }}>
+                    <div
+                      className="text-danger mt-1"
+                      style={{ fontSize: "14px" }}
+                    >
                       Invoice No is required.
                     </div>
                   )}
@@ -1110,7 +1176,9 @@ const ReviewBatchPage = () => {
                   <label className="me-2 fw-semibold w-50">Invoice Date</label>
                   <input
                     type="date"
-                    className={`form-control border-dark ${fieldErrors.invoiceDate ? "is-invalid" : ""}`}
+                    className={`form-control border-dark ${
+                      fieldErrors.invoiceDate ? "is-invalid" : ""
+                    }`}
                     value={invoiceDate}
                     onChange={(e) => {
                       const value = e.target.value;
@@ -1125,16 +1193,25 @@ const ReviewBatchPage = () => {
                     max={new Date().toISOString().split("T")[0]}
                   />
                   {fieldErrors.invoiceDate && (
-                    <div className="text-danger mt-1" style={{ fontSize: "14px" }}>
+                    <div
+                      className="text-danger mt-1"
+                      style={{ fontSize: "14px" }}
+                    >
                       Invoice Date is required and cannot be a future date.
                     </div>
                   )}
                 </div>
                 <div className="col-md-4 align-items-center mb-3">
-                  <label className="me-2 fw-semibold w-50">Invoice Amount</label>
+                  <label className="me-2 fw-semibold w-50">
+                    Invoice Amount
+                  </label>
                   <input
                     type="number"
-                    className={`form-control border-dark ${fieldErrors.invoiceAmount || amountError ? "is-invalid" : ""}`}
+                    className={`form-control border-dark ${
+                      fieldErrors.invoiceAmount || amountError
+                        ? "is-invalid"
+                        : ""
+                    }`}
                     placeholder="Enter Invoice Amount"
                     value={invoiceAmount}
                     onChange={(e) => {
@@ -1167,12 +1244,18 @@ const ReviewBatchPage = () => {
                     step="0.01"
                   />
                   {fieldErrors.invoiceAmount && (
-                    <div className="text-danger mt-1" style={{ fontSize: "14px" }}>
+                    <div
+                      className="text-danger mt-1"
+                      style={{ fontSize: "14px" }}
+                    >
                       Invoice Amount must be a valid positive number.
                     </div>
                   )}
                   {amountError && (
-                    <div className="text-danger mt-1" style={{ fontSize: "14px" }}>
+                    <div
+                      className="text-danger mt-1"
+                      style={{ fontSize: "14px" }}
+                    >
                       {amountError}
                     </div>
                   )}
@@ -1187,9 +1270,9 @@ const ReviewBatchPage = () => {
               className="btn btn-primary d-flex align-items-center"
               style={{
                 backgroundColor: "rgb(248, 238, 255)",
-                border: "1px",
-                padding: "10px solid",
-                borderRadius: "3px",
+                border: "1px solid #8000d7",
+                padding: "10px 50px",
+                borderRadius: "8px",
                 fontWeight: "500",
                 fontSize: "14px",
                 color: "#8000d7",
@@ -1217,6 +1300,101 @@ const ReviewBatchPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Edit Modal */}
+      <Modal show={showEditModal} onHide={handleCloseModal} centered size="lg">
+        <Modal.Header closeButton style={{ backgroundColor: "#EBF3FF" }}>
+          <Modal.Title>
+            Edit Invoices (AA No: {editingInvoice?.aA_Number})
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form>
+            <Form.Group className="mb-3">
+              <Form.Label>Repair Charges</Form.Label>
+              <Form.Control
+                type="number"
+                name="repairCharges"
+                value={editValues.repairCharges}
+                onChange={handleEditInputChange}
+                min="0"
+                step="0.01"
+                placeholder="Enter Repair Charges"
+                size="lg"
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Service Charges</Form.Label>
+              <Form.Control
+                type="number"
+                name="serviceCharges"
+                value={editValues.serviceCharges}
+                onChange={handleEditInputChange}
+                min="0"
+                step="0.01"
+                size="lg"
+                placeholder="Enter Service Charges"
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Remarks</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={3}
+                name="remarks"
+                value={editValues.remarks}
+                onChange={handleEditInputChange}
+                placeholder="Enter Remarks"
+                className={
+                  fieldErrors.remarks[editingInvoice?.aA_Number]
+                    ? "is-invalid"
+                    : ""
+                }
+              />
+              {fieldErrors.remarks[editingInvoice?.aA_Number] && (
+                <div className="text-danger mt-1" style={{ fontSize: "14px" }}>
+                  Remarks are required for mismatched data.
+                </div>
+              )}
+            </Form.Group>
+            <Form.Group controlId="formFile" className="mb-3">
+              <Form.Label
+                htmlFor="fileUpload"
+                className="btn btn-secondary mb-0"
+                style={{ backgroundColor: "#8000d7", border: "none" }}
+                onClick={() => modalFileInputRef.current.click()}
+              >
+                Upload File
+              </Form.Label>
+              <Form.Control
+                type="file"
+                id="fileUpload"
+                name="uploadedFile"
+                onChange={handeRemarkChange}
+                style={{ display: "none" }}
+                ref={modalFileInputRef}
+              />
+              {editValues.fileName && (
+                <div className="mt-2 text-muted">
+                  Selected File: {editValues.fileName}
+                </div>
+              )}
+            </Form.Group>
+          </Form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="danger" onClick={handleCloseModal}>
+            Cancel
+          </Button>
+          <Button
+            variant="primary"
+            onClick={handleSaveEdit}
+            style={{ backgroundColor: "#8000d7", border: "none" }}
+          >
+            Save
+          </Button>
+        </Modal.Footer>
+      </Modal>
 
       <style jsx>{`
         .table-container {
@@ -1257,3 +1435,7 @@ const ReviewBatchPage = () => {
 };
 
 export default ReviewBatchPage;
+
+
+
+

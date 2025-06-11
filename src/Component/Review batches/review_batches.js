@@ -453,6 +453,7 @@ function Review_batches() {
                                   invoiceNo: invoice.invoiceNo || "",
                                   invoiceDate: invoice.invoiceDate || "",
                                   invoiceAmount: invoice.invoiceAmount || "",
+                                  remarkFile: invoice.remarkFile || "",
                                 };
                                 navigate("/ReviewBatchPage", {
                                   state: {

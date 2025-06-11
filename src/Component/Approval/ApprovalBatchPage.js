@@ -557,12 +557,16 @@
 //         return;
 //       }
 
+
 //     } catch (error) {
 //       console.error("Submission failed:", error);
 //       setLoading(false);
 //       toast.error("Submission failed. Please check console for details.");
 //     }
 //   };
+
+
+
 
 //   // this is another function to handle send action
 //   const handleSendAction = async (type) => {
@@ -1404,6 +1408,10 @@
 
 // export default ApprovalBatchPage;
 
+
+
+
+
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Button, Form, Table, Modal } from "react-bootstrap";
 import { FaEye, FaDownload, FaTrash, FaUpload, FaEdit } from "react-icons/fa";
@@ -1618,7 +1626,8 @@ function ApprovalBatchPage() {
           normalize(dataItem.serviceType) !== normalize(invoice.serviceType) ||
           normalize(dataItem.repairCharges) !==
             normalize(invoice.repairCharges) ||
-          normalize(dataItem.serviceCharges) ||
+          normalize(dataItem.serviceCharges) !==
+            normalize(invoice.serviceCharges) ||
           normalize(dataItem.total) !== normalize(invoice.total) ||
           normalize(dataItem.imeiNumber) !== normalize(invoice.imeiNumber) ||
           normalize(dataItem.sellingPartner) !==
@@ -1702,7 +1711,7 @@ function ApprovalBatchPage() {
   };
 
   const handleDelete = (index) => {
-    const updatedInvoices = invoices.filter((_, i) => i != index);
+    const updatedInvoices = invoices.filter((_, i) => i !== index);
     setInvoices(updatedInvoices);
   };
 
@@ -1802,13 +1811,10 @@ function ApprovalBatchPage() {
       return;
     }
 
-    const formattedServiceCharges = parsedServiceCharges.toFixed(2);
-    const formattedRepairCharges = parsedRepairCharges.toFixed(2);
-    const formattedChargesInclGST = parsedChargesInclGST.toFixed(2);
-    const formattedTotal =
-      parsedServiceCharges +
-      parsedRepairCharges +
-      parsedChargesInclGST.toFixed(2);
+    const formattedServiceCharges = isNaN(parsedServiceCharges) ? "0.00" : parsedServiceCharges.toFixed(2);
+    const formattedRepairCharges = isNaN(parsedRepairCharges) ? "0.00" : parsedRepairCharges.toFixed(2);
+    const formattedChargesInclGST = isNaN(parsedChargesInclGST) ? "0.00" : parsedChargesInclGST.toFixed(2);
+    const formattedTotal = (parsedServiceCharges + parsedRepairCharges + parsedChargesInclGST).toFixed(2);
 
     setInvoices((prevInvoices) =>
       prevInvoices.map((invoice) =>
@@ -1830,7 +1836,7 @@ function ApprovalBatchPage() {
         (inv) => inv.aA_Number === aA_Number
       );
       const formData = new FormData();
-      formData.append("AANo", aA_Number);
+      formData.append("AANo", aA_Number || "");
       formData.append("BatchNo", batchData?.batchNo || "");
       formData.append("VendorName", batchData?.vendorName || "");
       formData.append("ServiceCharges", formattedServiceCharges);
@@ -1865,8 +1871,8 @@ function ApprovalBatchPage() {
       });
       const result = await response.json();
       if (!response.ok) {
-        console.error("Failed to update invoice:", result.message);
-        toast.error("Failed to update invoice. Please try again.");
+        console.error("Failed to update invoice:", result);
+        toast.error(`Failed to update invoice: ${result.message || "Unknown error"}`);
         return;
       }
       toast.success("Invoice updated successfully.");
@@ -1947,7 +1953,6 @@ function ApprovalBatchPage() {
   };
 
   const handleSubmit = async () => {
-    // Validation for Approve button
     const parsedCaseCount = parseInt(caseCount);
     const parsedInvoiceAmount = parseFloat(invoiceAmount);
 
@@ -2004,9 +2009,7 @@ function ApprovalBatchPage() {
     const filteredSelected = isSendBack
       ? selected
       : selected.filter(
-          (inv) =>
-            getRowClassName(inv) === "row-green" ||
-            getRowClassName(inv) === "row-yellow"
+          (inv) => getRowClassName(inv) === "row-green" || getRowClassName(inv) === "row-yellow"
         );
 
     if (isPartial && !isSendBack && filteredSelected.length === 0) {
@@ -2017,49 +2020,81 @@ function ApprovalBatchPage() {
     const extract = (key) =>
       filteredSelected.map((item) => item[key] || "").join(", ");
 
-    const payload = {
-      sellingPartner: extract("sellingPartner"),
-      aaNo: extract("aA_Number"),
-      imeiNo: extract("imeiNumber"),
-      creationDate: new Date().toISOString(),
-      closureDate: null,
-      customerName: extract("customerName"),
-      serviceType: extract("serviceType"),
-      brand: extract("brand"),
-      makeModel: extract("makeModel"),
-      repairCharges: extract("repairCharges"),
-      serviceCharges: extract("serviceCharges"),
-      total: extract("total"),
-      invoiceStatus: "Invoice Uploaded",
-      batchNo: batchData?.batchNo || "",
-      selectedService: null,
-      totalRepairCharges: totalRepairCharges.toFixed(2),
-      totalServiceCharges: totalServiceCharges.toFixed(2),
-      finalAmount: finalAmount.toString(),
-      gst: null,
-      invoiceNo: invoiceNo || "",
-      invoiceDate: invoiceDate || "",
-      invoiceAmount: invoiceAmount || "",
-      invoice: existingInvoice?.url || "",
-      vendorName: batchData?.vendorName || "",
-      caseCount: filteredSelected.length,
-      remarks: extract("remarks"),
-      type: isSendBack ? "Send Back" : type,
-      isSendBack,
-      isPartial: !isSendBack,
-    };
+    // Construct FormData payload
+    const formData = new FormData();
+    formData.append("sellingPartner", extract("sellingPartner") || "");
+    formData.append("aaNo", extract("aA_Number") || "");
+    formData.append("imeiNo", extract("imeiNumber") || "");
+    formData.append("creationDate", new Date().toISOString());
+    formData.append("closureDate", "");
+    formData.append("customerName", extract("customerName") || "");
+    formData.append("serviceType", extract("serviceType") || "");
+    formData.append("brand", extract("brand") || "");
+    formData.append("makeModel", extract("makeModel") || "");
+    formData.append("repairCharges", extract("repairCharges") || "0.00");
+    formData.append("serviceCharges", extract("serviceCharges") || "0.00");
+    formData.append("total", extract("total") || "0.00");
+    formData.append("invoiceStatus", "Invoice Uploaded");
+    formData.append("batchNo", batchData?.batchNo || "");
+    formData.append("selectedService", "");
+    formData.append("totalRepairCharges", parseFloat(totalRepairCharges).toFixed(2));
+    formData.append("totalServiceCharges", parseFloat(totalServiceCharges).toFixed(2));
+    formData.append("finalAmount", parseFloat(finalAmount).toFixed(2));
+    formData.append("gst", isGSTApplied ? parseFloat(gstAmount).toFixed(2) : "0.00");
+    formData.append("invoiceNo", invoiceNo || "");
+    formData.append("invoiceDate", invoiceDate || "");
+    formData.append("invoiceAmount", invoiceAmount || "0.00");
+    formData.append("invoice", existingInvoice?.url || "");
+    formData.append("vendorName", batchData?.vendorName || "");
+    formData.append("caseCount", filteredSelected.length.toString());
+    formData.append("remarks", extract("remarks") || "");
+    formData.append("type", isSendBack ? "Send Back" : type);
+    formData.append("isSendBack", isSendBack.toString());
+    formData.append("isPartial", (!isSendBack).toString());
+
+    // Validate required fields
+    if (!formData.get("aaNo")) {
+      toast.error("AA Numbers are required.");
+      return;
+    }
+    if (!formData.get("batchNo")) {
+      toast.error("Batch Number is required.");
+      return;
+    }
+    if (!formData.get("invoiceNo") && (uploadedFile || !existingInvoice.url)) {
+      toast.error("Invoice Number is required.");
+      return;
+    }
+    if (!formData.get("invoiceDate") && (uploadedFile || !existingInvoice.url)) {
+      toast.error("Invoice Date is required.");
+      return;
+    }
+    if (!formData.get("invoiceAmount") && (uploadedFile || !existingInvoice.url)) {
+      toast.error("Invoice Amount is required.");
+      return;
+    }
 
     try {
       setLoading(true);
+      // Log FormData entries for debugging
+      console.log("Sending FormData to API:");
+      for (let [key, value] of formData.entries()) {
+        console.log(`${key}: ${value}`);
+      }
+
       const response = await fetch(`${BASE_URL}/DeleteAndInsertBatchData`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: formData,
       });
 
       const result = await response.json();
       if (!response.ok) {
-        toast.error("Error: " + (result.message || "Unknown error"));
+        console.error("API error:", {
+          status: response.status,
+          statusText: response.statusText,
+          responseBody: result,
+        });
+        toast.error(`Error: ${result.message || "Unknown error"} (Status: ${response.status})`);
         return;
       }
 
@@ -2075,8 +2110,12 @@ function ApprovalBatchPage() {
         });
       }
     } catch (error) {
-      console.error("Send failed:", error);
-      toast.error("Send failed. Check console for details.");
+      console.error("Send failed:", {
+        message: error.message,
+        stack: error.stack,
+        formData: Object.fromEntries(formData.entries()),
+      });
+      toast.error(`Send failed: ${error.message}. Check console for details.`);
     } finally {
       setLoading(false);
     }

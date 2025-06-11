@@ -27,8 +27,11 @@ import "react-toastify/dist/ReactToastify.css";
 // import { ReviewHooksFile } from "./reviewHooksFile";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { IconButton } from "@mui/material";
+import { useNavigate } from "react-router-dom";
 
-function HoldCase() {
+function HoldCases() {
+  const navigate = useNavigate();
   const [invoicesData, setInvoicesData] = useState([]);
   console.log(invoicesData, "get all hold data");
   const [vendorSearch, setVendorSearch] = useState("");
@@ -214,6 +217,9 @@ console.log("lala",selectedRowData)
     }
   };
 
+  const handleViewRow = (invoice) => {
+    navigate("/holdCasesPage", { state: { invoice } });
+  };
   const handleFinanceStatusChange = async (index, newStatus) => {
     const globalIndex = indexOfFirstItem + index;
     const selectedInvoice = invoicesData[globalIndex];
@@ -421,16 +427,15 @@ console.log("lala",selectedRowData)
                       key={index}
                       className="text-center border-bottom network_td_item"
                     >
-                      <td className="border-start align-middle">
-                        <FaEye
-                          className="text-purple review_fa_eye"
-                          style={{ cursor: "pointer" }}
-                          onClick={() => {
-                            setSelectedRowData(invoice); // set the row data
-                            setShowHoldModal(true); // open popup
-                          }}
-                        />
-                      </td>
+                     <td className="border-start align-middle">
+                        <IconButton onClick={() => handleViewRow(invoice)}>
+                          <FaEye
+                            className="text-purple review_fa_eye"
+                            style={{ cursor: "pointer" }}
+                            size={20}
+                          />
+                        </IconButton>
+                      </td> 
                      
                       <td className="align-middle">
                         {invoice.batchNo ?? "--"}
@@ -602,4 +607,4 @@ console.log("lala",selectedRowData)
   );
 }
 
-export default HoldCase;
+export default HoldCases;

@@ -12,10 +12,9 @@ import Sidebar from "./Component/Sidebar/sidebar";
 import Review_batches from "./Component/Review batches/review_batches";
 import Approval from "./Component/Approval/approval";
 import Vendor_name from "./Component/Vandor Name/vendor_name";
-import Reajectedcases from "./Component/Reajected Cases/reajectedcases";
 import InvoiceTemplate from "./Component/InvoiceTemplate/Invoice_template";
-import QueryCase from "./Component/Query case/queryCase";
-import HoldCase from "./Component/Hold Cases/holdcase";
+
+import HoldCase from "./Component/Hold Cases/HoldCases";
 import Concern from "./Component/Concern/concern";
 import BankReject from "./Component/BankReject/BankReject";
 import Login from "./Component/Login/Login";
@@ -33,6 +32,11 @@ import GetNetworkReject from "./Component/getnetworkReject/GetNetworkReject";
 import SendBackByApproval from "./Component/SendBackByApproval/SendBackByApproval";
 import PartialDetailPage from "./Component/PartialApproval/PartialDetailPage";
 import SendbackDetailPage from "./Component/SendBackByApproval/SendBackDetailPage";
+import RejectedCasePage from "./Component/ReajectedCases/RejectedCasePage";
+import Reajectedcases from "./Component/ReajectedCases/Reajectedcases";
+import QueryCases from "./Component/Query case/QueryCases";
+import QueryCasePage from "./Component/Query case/QuaryCasePage";
+import HoldCasesPage from "./Component/Hold Cases/HoldCasesPage";
 
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -307,6 +311,32 @@ function App() {
           }
         />
         <Route
+          path="/reajectedcasesPage"
+          element={
+            <ProtectedRoute
+              element={
+                <>
+                  <Header open={sidebarOpen} toggleSidebar={toggleSidebar} />
+                  <Sidebar open={sidebarOpen} toggleSidebar={toggleSidebar} />
+                  <Box
+                    component="main"
+                    sx={{
+                      flexGrow: 1,
+                      marginLeft: sidebarOpen && !isMobile ? "0px" : 0,
+                      width: "100%",
+                      marginTop: "64px",
+                      transition: "margin 0.3s ease-in-out",
+                    }}
+                  >
+                    <RejectedCasePage />
+                  </Box>
+                </>
+              }
+              allowedRoles={["NetworkSubAdmin", "NetworkAdmin"]}
+            />
+          }
+        />
+        <Route
           path="/query-case"
           element={
             <ProtectedRoute
@@ -324,7 +354,33 @@ function App() {
                       transition: "margin 0.3s ease-in-out",
                     }}
                   >
-                    <QueryCase />
+                    <QueryCases/>
+                  </Box>
+                </>
+              }
+              allowedRoles={["NetworkSubAdmin", "NetworkAdmin"]}
+            />
+          }
+        />
+        <Route
+          path="/queryCasesPage"
+          element={
+            <ProtectedRoute
+              element={
+                <>
+                  <Header open={sidebarOpen} toggleSidebar={toggleSidebar} />
+                  <Sidebar open={sidebarOpen} toggleSidebar={toggleSidebar} />
+                  <Box
+                    component="main"
+                    sx={{
+                      flexGrow: 1,
+                      marginLeft: sidebarOpen && !isMobile ? "0px" : 0,
+                      width: "100%",
+                      marginTop: "64px",
+                      transition: "margin 0.3s ease-in-out",
+                    }}
+                  >
+                    <QueryCasePage/>
                   </Box>
                 </>
               }
@@ -351,6 +407,32 @@ function App() {
                     }}
                   >
                     <HoldCase />
+                  </Box>
+                </>
+              }
+              allowedRoles={["NetworkSubAdmin", "NetworkAdmin"]}
+            />
+          }
+        />
+        <Route
+          path="/holdCasesPage"
+          element={
+            <ProtectedRoute
+              element={
+                <>
+                  <Header open={sidebarOpen} toggleSidebar={toggleSidebar} />
+                  <Sidebar open={sidebarOpen} toggleSidebar={toggleSidebar} />
+                  <Box
+                    component="main"
+                    sx={{
+                      flexGrow: 1,
+                      marginLeft: sidebarOpen && !isMobile ? "0px" : 0,
+                      width: "100%",
+                      marginTop: "64px",
+                      transition: "margin 0.3s ease-in-out",
+                    }}
+                  >
+                    <HoldCasesPage />
                   </Box>
                 </>
               }

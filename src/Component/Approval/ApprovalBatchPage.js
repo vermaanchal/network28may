@@ -1,3 +1,4 @@
+
 // import React, { useState, useRef, useEffect, useCallback } from "react";
 // import { Button, Form, Table, Modal } from "react-bootstrap";
 // import { FaEye, FaDownload, FaTrash, FaUpload, FaEdit } from "react-icons/fa";
@@ -17,7 +18,7 @@
 //   const fileInputRef = useRef();
 //   const [invoices, setInvoices] = useState([]);
 //   const [currentPage, setCurrentPage] = useState(1);
-//   const [isGSTApplied, setIsGSTApplied] = useState(true); // Default to true
+//   const [isGSTApplied, setIsGSTApplied] = useState(true);
 //   const [apiData, setApiData] = useState([]);
 //   const [loading, setLoading] = useState(false);
 //   const [uploadedFile, setUploadedFile] = useState(null);
@@ -34,7 +35,7 @@
 //   const [invoiceDate, setInvoiceDate] = useState("");
 //   const [invoiceAmount, setInvoiceAmount] = useState("");
 //   const [amountError, setAmountError] = useState("");
-//   const [caseCountError, setCaseCountError] = useState(""); // New state for case count error
+//   const [caseCountError, setCaseCountError] = useState("");
 //   const [hoveredRow, setHoveredRow] = useState(null);
 //   const [fieldErrors, setFieldErrors] = useState({
 //     invoiceNo: false,
@@ -397,13 +398,20 @@
 //       return;
 //     }
 
-//     const formattedServiceCharges = parsedServiceCharges.toFixed(2);
-//     const formattedRepairCharges = parsedRepairCharges.toFixed(2);
-//     const formattedChargesInclGST = parsedChargesInclGST.toFixed(2);
-//     const formattedTotal =
+//     const formattedServiceCharges = isNaN(parsedServiceCharges)
+//       ? "0.00"
+//       : parsedServiceCharges.toFixed(2);
+//     const formattedRepairCharges = isNaN(parsedRepairCharges)
+//       ? "0.00"
+//       : parsedRepairCharges.toFixed(2);
+//     const formattedChargesInclGST = isNaN(parsedChargesInclGST)
+//       ? "0.00"
+//       : parsedChargesInclGST.toFixed(2);
+//     const formattedTotal = (
 //       parsedServiceCharges +
 //       parsedRepairCharges +
-//       parsedChargesInclGST.toFixed(2);
+//       parsedChargesInclGST
+//     ).toFixed(2);
 
 //     setInvoices((prevInvoices) =>
 //       prevInvoices.map((invoice) =>
@@ -425,7 +433,7 @@
 //         (inv) => inv.aA_Number === aA_Number
 //       );
 //       const formData = new FormData();
-//       formData.append("AANo", aA_Number);
+//       formData.append("AANo", aA_Number || "");
 //       formData.append("BatchNo", batchData?.batchNo || "");
 //       formData.append("VendorName", batchData?.vendorName || "");
 //       formData.append("ServiceCharges", formattedServiceCharges);
@@ -460,8 +468,10 @@
 //       });
 //       const result = await response.json();
 //       if (!response.ok) {
-//         console.error("Failed to update invoice:", result.message);
-//         toast.error("Failed to update invoice. Please try again.");
+//         console.error("Failed to update invoice:", result);
+//         toast.error(
+//           `Failed to update invoice: ${result.message || "Unknown error"}`
+//         );
 //         return;
 //       }
 //       toast.success("Invoice updated successfully.");
@@ -542,14 +552,30 @@
 //   };
 
 //   const handleSubmit = async () => {
+//     const parsedCaseCount = parseInt(caseCount);
+//     const parsedInvoiceAmount = parseFloat(invoiceAmount);
+
+//     if (selectedAAno.length !== parsedCaseCount) {
+//       toast.error("Total number of selected invoices must equal Case Count.");
+//       return;
+//     }
+
+//     if (
+//       !isNaN(parsedInvoiceAmount) &&
+//       Math.abs(parsedInvoiceAmount - parseFloat(finalAmount)) > 0.01
+//     ) {
+//       toast.error("Invoice Amount must match Total Amount.");
+//       return;
+//     }
+
 //     try {
+//       setLoading(true);
 //       const statusResponse = await updateInvoiceStatusNetworkForApproved({
 //         batchNo: batchData?.batchNo || "",
-//         invoiceStatus: "Approved",
+//         invoiceStatus: "Approve",
 //       });
 
 //       if (!statusResponse?.status) {
-//         setLoading(false);
 //         toast.error(
 //           "Error updating invoice status: " +
 //             (statusResponse?.message || "Unknown error")
@@ -557,32 +583,37 @@
 //         return;
 //       }
 
-
+//       toast.success("Invoice approved successfully.");
 //     } catch (error) {
 //       console.error("Submission failed:", error);
-//       setLoading(false);
 //       toast.error("Submission failed. Please check console for details.");
+//     } finally {
+//       setLoading(false);
 //     }
 //   };
 
-
-
-
-//   // this is another function to handle send action
 //   const handleSendAction = async (type) => {
-//     const isSendBack = type === "Send Back";
 //     const isPartial = type === "Send Partial";
-
 //     const selected = invoices.filter((inv) => inv.isChecked);
+
 //     if (selected.length === 0) {
 //       toast.error("Please select at least one invoice.");
 //       return;
 //     }
+
+//     // Determine if it's a Send Back or Send Partial action
+//     const isSendBack = isPartial && selected.length === invoices.length;
+
+//     // For Send Partial, only include green or yellow rows
 //     const filteredSelected = isSendBack
 //       ? selected
-//       : selected.filter((inv) => getRowClassName(inv) === "row-green");
+//       : selected.filter(
+//           (inv) =>
+//             getRowClassName(inv) === "row-green" ||
+//             getRowClassName(inv) === "row-yellow"
+//         );
 
-//     if (isPartial && filteredSelected.length === 0) {
+//     if (isPartial && !isSendBack && filteredSelected.length === 0) {
 //       toast.error("Selected rows are not eligible for partial approval.");
 //       return;
 //     }
@@ -590,51 +621,100 @@
 //     const extract = (key) =>
 //       filteredSelected.map((item) => item[key] || "").join(", ");
 
-//     const payload = {
-//       sellingPartner: extract("sellingPartner"),
-//       aaNo: extract("aA_Number"),
-//       imeiNo: extract("imeiNumber"),
-//       creationDate: new Date().toISOString(),
-//       closureDate: null,
-//       customerName: extract("customerName"),
-//       serviceType: extract("serviceType"),
-//       brand: extract("brand"),
-//       makeModel: extract("makeModel"),
-//       repairCharges: extract("repairCharges"),
-//       serviceCharges: extract("serviceCharges"),
-//       total: extract("total"),
-//       invoiceStatus: "Invoice Uploaded",
-//       batchNo: batchData?.batchNo || "",
-//       selectedService: null,
-//       totalRepairCharges: totalRepairCharges.toFixed(2),
-//       totalServiceCharges: totalServiceCharges.toFixed(2),
-//       finalAmount: finalAmount.toString(),
-//       gst: null,
-//       invoiceNo: invoiceNo || "",
-//       invoiceDate: invoiceDate || "",
-//       invoiceAmount: invoiceAmount || "",
-//       invoice: existingInvoice?.url || "",
-//       vendorName: batchData?.vendorName || "",
-//       caseCount: filteredSelected.length,
-//       remarks: extract("remarks"),
-//       type,
-//       isSendBack,
-//       isPartial,
-//     };
+//     // Construct FormData payload
+//     const formData = new FormData();
+//     formData.append("sellingPartner", extract("sellingPartner") || "");
+//     formData.append("aaNo", extract("aA_Number") || "");
+//     formData.append("imeiNo", extract("imeiNumber") || "");
+//     formData.append("creationDate", new Date().toISOString());
+//     formData.append("closureDate", "");
+//     formData.append("customerName", extract("customerName") || "");
+//     formData.append("serviceType", extract("serviceType") || "");
+//     formData.append("brand", extract("brand") || "");
+//     formData.append("makeModel", extract("makeModel") || "");
+//     formData.append("repairCharges", extract("repairCharges") || "0.00");
+//     formData.append("serviceCharges", extract("serviceCharges") || "0.00");
+//     formData.append("total", extract("total") || "0.00");
+//     formData.append("invoiceStatus", "Invoice Uploaded");
+//     formData.append("batchNo", batchData?.batchNo || "");
+//     formData.append("selectedService", "");
+//     formData.append(
+//       "totalRepairCharges",
+//       parseFloat(totalRepairCharges).toFixed(2)
+//     );
+//     formData.append(
+//       "totalServiceCharges",
+//       parseFloat(totalServiceCharges).toFixed(2)
+//     );
+//     formData.append("finalAmount", parseFloat(finalAmount).toFixed(2));
+//     formData.append(
+//       "gst",
+//       isGSTApplied ? parseFloat(gstAmount).toFixed(2) : "0.00"
+//     );
+//     formData.append("invoiceNo", invoiceNo || "");
+//     formData.append("invoiceDate", invoiceDate || "");
+//     formData.append("invoiceAmount", invoiceAmount || "0.00");
+//     formData.append("invoice", existingInvoice?.url || "");
+//     formData.append("vendorName", batchData?.vendorName || "");
+//     formData.append("caseCount", filteredSelected.length.toString());
+//     formData.append("remarks", extract("remarks") || "");
+//     formData.append("type", isSendBack ? "Send Back" : type);
+//     formData.append("isSendBack", isSendBack.toString());
+//     formData.append("isPartial", (!isSendBack).toString());
+
+//     // Validate required fields
+//     if (!formData.get("aaNo")) {
+//       toast.error("AA Numbers are required.");
+//       return;
+//     }
+//     if (!formData.get("batchNo")) {
+//       toast.error("Batch Number is required.");
+//       return;
+//     }
+//     if (!formData.get("invoiceNo") && (uploadedFile || !existingInvoice.url)) {
+//       toast.error("Invoice Number is required.");
+//       return;
+//     }
+//     if (
+//       !formData.get("invoiceDate") &&
+//       (uploadedFile || !existingInvoice.url)
+//     ) {
+//       toast.error("Invoice Date is required.");
+//       return;
+//     }
+//     if (
+//       !formData.get("invoiceAmount") &&
+//       (uploadedFile || !existingInvoice.url)
+//     ) {
+//       toast.error("Invoice Amount is required.");
+//       return;
+//     }
 
 //     try {
 //       setLoading(true);
+//       // Log FormData entries for debugging
+//       console.log("Sending FormData to API:");
+//       for (let [key, value] of formData.entries()) {
+//         console.log(`${key}: ${value}`);
+//       }
+
 //       const response = await fetch(`${BASE_URL}/DeleteAndInsertBatchData`, {
 //         method: "POST",
-//         headers: { "Content-Type": "application/json" },
-//         body: JSON.stringify(payload),
+//         body: formData,
 //       });
 
 //       const result = await response.json();
-//       setLoading(false);
-
 //       if (!response.ok) {
-//         toast.error("Error: " + (result.message || "Unknown error"));
+//         console.error("API error:", {
+//           status: response.status,
+//           statusText: response.statusText,
+//           responseBody: result,
+//         });
+//         toast.error(
+//           `Error: ${result.message || "Unknown error"} (Status: ${
+//             response.status
+//           })`
+//         );
 //         return;
 //       }
 
@@ -642,17 +722,22 @@
 
 //       if (isSendBack) {
 //         navigate("/sendBackByapproval", {
-//           state: { updatedInvoices: invoices },
+//           state: { updatedInvoices: filteredSelected },
 //         });
-//       } else if (isPartial) {
+//       } else {
 //         navigate("/partialApproval", {
-//           state: { updatedInvoices: invoices },
+//           state: { updatedInvoices: filteredSelected },
 //         });
 //       }
 //     } catch (error) {
-//       console.error("Send failed:", error);
+//       console.error("Send failed:", {
+//         message: error.message,
+//         stack: error.stack,
+//         formData: Object.fromEntries(formData.entries()),
+//       });
+//       toast.error(`Send failed: ${error.message}. Check console for details.`);
+//     } finally {
 //       setLoading(false);
-//       toast.error("Send failed. Check console for details.");
 //     }
 //   };
 
@@ -781,6 +866,7 @@
 //                     <th style={{ whiteSpace: "nowrap" }}>Invoice Status</th>
 //                     <th style={{ whiteSpace: "nowrap" }}>Mismatched Data</th>
 //                     <th style={{ whiteSpace: "nowrap" }}>Remarks</th>
+//                     <th style={{ whiteSpace: "nowrap" }}>Remarks File</th>
 //                     <th className="border-end" style={{ whiteSpace: "nowrap" }}>
 //                       Action
 //                     </th>
@@ -925,6 +1011,21 @@
 //                         </td>
 //                         <td className="align-middle">
 //                           {invoice.remarks || "no remarks"}
+//                         </td>
+//                         <td className="align-middle border-end">
+//                           {invoice.remarkFile ? (
+//                             <a
+//                               href={
+//                                 invoice.remarkFile
+//                               }
+//                               target="_blank"
+//                               rel="noopener noreferrer"
+//                             >
+//                               View
+//                             </a>
+//                           ) : (
+//                             "-"
+//                           )}
 //                         </td>
 //                         <td className="align-middle border-end">
 //                           <FaTrash
@@ -1274,21 +1375,6 @@
 //                 <span>{loading ? "Submitting..." : "Approve"}</span>
 //               </Button>
 //               <Button
-//                 onClick={() => handleSendAction("Send Back")}
-//                 className="d-flex align-items-center"
-//                 style={{
-//                   backgroundColor: "#8000d7",
-//                   border: "none",
-//                   padding: "10px 16px",
-//                   fontWeight: "bold",
-//                   fontSize: "16px",
-//                   color: "white",
-//                 }}
-//                 disabled={loading}
-//               >
-//                 <span>{loading ? "Sending..." : "Send Back"}</span>
-//               </Button>
-//               <Button
 //                 onClick={() => handleSendAction("Send Partial")}
 //                 className="d-flex align-items-center"
 //                 style={{
@@ -1412,6 +1498,9 @@
 
 
 
+
+
+
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Button, Form, Table, Modal } from "react-bootstrap";
 import { FaEye, FaDownload, FaTrash, FaUpload, FaEdit } from "react-icons/fa";
@@ -1463,6 +1552,7 @@ function ApprovalBatchPage() {
     repairCharges: "",
     chargesInclGST: "",
     remarks: "",
+    remarkFile: null,
   });
 
   console.log("Batch No:", batchNo);
@@ -1602,6 +1692,7 @@ function ApprovalBatchPage() {
       batchNo: batchData.batchNo || "",
       isChecked: true,
       remarks: splitData("remarks")[i] || "",
+      remarkFile: batchData.remarkFile || null,
     }));
     setInvoices(invoicesArray);
   }, [batchData]);
@@ -1776,7 +1867,9 @@ function ApprovalBatchPage() {
 
   const handleRemarkFileChange = (e) => {
     const file = e.target.files[0];
-    setEditValues((prev) => ({ ...prev, file }));
+    if (file) {
+      setEditValues((prev) => ({ ...prev, remarkFile: file }));
+    }
   };
 
   const handleCloseModal = () => {
@@ -1787,7 +1880,7 @@ function ApprovalBatchPage() {
       repairCharges: "",
       chargesInclGST: "",
       remarks: "",
-      file: null,
+      remarkFile: null,
     });
     setFieldErrors((prev) => ({
       ...prev,
@@ -1800,7 +1893,7 @@ function ApprovalBatchPage() {
     const parsedRepairCharges = parseFloat(editValues.repairCharges);
     const parsedChargesInclGST = parseFloat(editValues.chargesInclGST);
     const remarks = editValues.remarks?.trim() || "";
-    const file = editValues.file;
+    const remarkFile = editValues.remarkFile;
 
     if (getDifferencesData(editingInvoice).length > 0 && !remarks) {
       setFieldErrors((prev) => ({
@@ -1811,10 +1904,20 @@ function ApprovalBatchPage() {
       return;
     }
 
-    const formattedServiceCharges = isNaN(parsedServiceCharges) ? "0.00" : parsedServiceCharges.toFixed(2);
-    const formattedRepairCharges = isNaN(parsedRepairCharges) ? "0.00" : parsedRepairCharges.toFixed(2);
-    const formattedChargesInclGST = isNaN(parsedChargesInclGST) ? "0.00" : parsedChargesInclGST.toFixed(2);
-    const formattedTotal = (parsedServiceCharges + parsedRepairCharges + parsedChargesInclGST).toFixed(2);
+    const formattedServiceCharges = isNaN(parsedServiceCharges)
+      ? "0.00"
+      : parsedServiceCharges.toFixed(2);
+    const formattedRepairCharges = isNaN(parsedRepairCharges)
+      ? "0.00"
+      : parsedRepairCharges.toFixed(2);
+    const formattedChargesInclGST = isNaN(parsedChargesInclGST)
+      ? "0.00"
+      : parsedChargesInclGST.toFixed(2);
+    const formattedTotal = (
+      parsedServiceCharges +
+      parsedRepairCharges +
+      parsedChargesInclGST
+    ).toFixed(2);
 
     setInvoices((prevInvoices) =>
       prevInvoices.map((invoice) =>
@@ -1826,6 +1929,7 @@ function ApprovalBatchPage() {
               chargesInclGST: formattedChargesInclGST,
               total: formattedTotal,
               remarks: remarks,
+              remarkFile: remarkFile ? URL.createObjectURL(remarkFile) : invoice.remarkFile,
             }
           : invoice
       )
@@ -1859,8 +1963,11 @@ function ApprovalBatchPage() {
       formData.append("TotalRepairCharges", totalRepairCharges.toFixed(2));
       formData.append("TotalServiceCharges", totalServiceCharges.toFixed(2));
       formData.append("CaseCount", caseCount || invoices.length.toString());
-      if (file) {
-        formData.append("Invoice", file, file.name);
+      if (remarkFile) {
+        formData.append("RemarkFile", remarkFile, remarkFile.name);
+      }
+      if (uploadedFile) {
+        formData.append("Invoice", uploadedFile, uploadedFile.name);
       } else if (existingInvoice.url) {
         formData.append("ExistingInvoiceUrl", existingInvoice.url);
       }
@@ -1872,7 +1979,9 @@ function ApprovalBatchPage() {
       const result = await response.json();
       if (!response.ok) {
         console.error("Failed to update invoice:", result);
-        toast.error(`Failed to update invoice: ${result.message || "Unknown error"}`);
+        toast.error(
+          `Failed to update invoice: ${result.message || "Unknown error"}`
+        );
         return;
       }
       toast.success("Invoice updated successfully.");
@@ -1891,7 +2000,7 @@ function ApprovalBatchPage() {
       repairCharges: invoice.repairCharges || "0.00",
       chargesInclGST: invoice.chargesInclGST || "0.00",
       remarks: invoice.remarks || "",
-      file: null,
+      remarkFile: invoice.remarkFile || null,
     });
     setShowEditModal(true);
   };
@@ -1911,6 +2020,7 @@ function ApprovalBatchPage() {
       "GST Charges",
       "Total",
       "Remarks",
+      "Remark File",
     ];
     const today = new Date().toLocaleDateString("en-GB");
     const data = invoices.map((invoice) => ({
@@ -1927,6 +2037,7 @@ function ApprovalBatchPage() {
       chargesInclGST: invoice.chargesInclGST || "0.00",
       total: invoice.total || "0.00",
       remarks: invoice.remarks || "",
+      remarkFile: invoice.remarkFile || "",
     }));
     const csv = Papa.unparse({
       fields: headers,
@@ -1973,7 +2084,7 @@ function ApprovalBatchPage() {
       setLoading(true);
       const statusResponse = await updateInvoiceStatusNetworkForApproved({
         batchNo: batchData?.batchNo || "",
-        invoiceStatus: "Approved",
+        invoiceStatus: "Approve",
       });
 
       if (!statusResponse?.status) {
@@ -2002,14 +2113,14 @@ function ApprovalBatchPage() {
       return;
     }
 
-    // Determine if it's a Send Back or Send Partial action
     const isSendBack = isPartial && selected.length === invoices.length;
 
-    // For Send Partial, only include green or yellow rows
     const filteredSelected = isSendBack
       ? selected
       : selected.filter(
-          (inv) => getRowClassName(inv) === "row-green" || getRowClassName(inv) === "row-yellow"
+          (inv) =>
+            getRowClassName(inv) === "row-green" ||
+            getRowClassName(inv) === "row-yellow"
         );
 
     if (isPartial && !isSendBack && filteredSelected.length === 0) {
@@ -2020,7 +2131,6 @@ function ApprovalBatchPage() {
     const extract = (key) =>
       filteredSelected.map((item) => item[key] || "").join(", ");
 
-    // Construct FormData payload
     const formData = new FormData();
     formData.append("sellingPartner", extract("sellingPartner") || "");
     formData.append("aaNo", extract("aA_Number") || "");
@@ -2037,10 +2147,19 @@ function ApprovalBatchPage() {
     formData.append("invoiceStatus", "Invoice Uploaded");
     formData.append("batchNo", batchData?.batchNo || "");
     formData.append("selectedService", "");
-    formData.append("totalRepairCharges", parseFloat(totalRepairCharges).toFixed(2));
-    formData.append("totalServiceCharges", parseFloat(totalServiceCharges).toFixed(2));
+    formData.append(
+      "totalRepairCharges",
+      parseFloat(totalRepairCharges).toFixed(2)
+    );
+    formData.append(
+      "totalServiceCharges",
+      parseFloat(totalServiceCharges).toFixed(2)
+    );
     formData.append("finalAmount", parseFloat(finalAmount).toFixed(2));
-    formData.append("gst", isGSTApplied ? parseFloat(gstAmount).toFixed(2) : "0.00");
+    formData.append(
+      "gst",
+      isGSTApplied ? parseFloat(gstAmount).toFixed(2) : "0.00"
+    );
     formData.append("invoiceNo", invoiceNo || "");
     formData.append("invoiceDate", invoiceDate || "");
     formData.append("invoiceAmount", invoiceAmount || "0.00");
@@ -2048,11 +2167,11 @@ function ApprovalBatchPage() {
     formData.append("vendorName", batchData?.vendorName || "");
     formData.append("caseCount", filteredSelected.length.toString());
     formData.append("remarks", extract("remarks") || "");
+    formData.append("remarkFile", extract("remarkFile") || "");
     formData.append("type", isSendBack ? "Send Back" : type);
     formData.append("isSendBack", isSendBack.toString());
     formData.append("isPartial", (!isSendBack).toString());
 
-    // Validate required fields
     if (!formData.get("aaNo")) {
       toast.error("AA Numbers are required.");
       return;
@@ -2065,18 +2184,23 @@ function ApprovalBatchPage() {
       toast.error("Invoice Number is required.");
       return;
     }
-    if (!formData.get("invoiceDate") && (uploadedFile || !existingInvoice.url)) {
+    if (
+      !formData.get("invoiceDate") &&
+      (uploadedFile || !existingInvoice.url)
+    ) {
       toast.error("Invoice Date is required.");
       return;
     }
-    if (!formData.get("invoiceAmount") && (uploadedFile || !existingInvoice.url)) {
+    if (
+      !formData.get("invoiceAmount") &&
+      (uploadedFile || !existingInvoice.url)
+    ) {
       toast.error("Invoice Amount is required.");
       return;
     }
 
     try {
       setLoading(true);
-      // Log FormData entries for debugging
       console.log("Sending FormData to API:");
       for (let [key, value] of formData.entries()) {
         console.log(`${key}: ${value}`);
@@ -2094,7 +2218,11 @@ function ApprovalBatchPage() {
           statusText: response.statusText,
           responseBody: result,
         });
-        toast.error(`Error: ${result.message || "Unknown error"} (Status: ${response.status})`);
+        toast.error(
+          `Error: ${result.message || "Unknown error"} (Status: ${
+            response.status
+          })`
+        );
         return;
       }
 
@@ -2246,6 +2374,7 @@ function ApprovalBatchPage() {
                     <th style={{ whiteSpace: "nowrap" }}>Invoice Status</th>
                     <th style={{ whiteSpace: "nowrap" }}>Mismatched Data</th>
                     <th style={{ whiteSpace: "nowrap" }}>Remarks</th>
+                    <th style={{ whiteSpace: "nowrap" }}>Remarks File</th>
                     <th className="border-end" style={{ whiteSpace: "nowrap" }}>
                       Action
                     </th>
@@ -2390,6 +2519,20 @@ function ApprovalBatchPage() {
                         </td>
                         <td className="align-middle">
                           {invoice.remarks || "no remarks"}
+                        </td>
+                        <td className="align-middle border-end">
+                          {invoice.remarkFile ? (
+                            <a
+                              href={invoice.remarkFile}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{ color: "#8000d7", textDecoration: "underline" }}
+                            >
+                              View File
+                            </a>
+                          ) : (
+                            "-"
+                          )}
                         </td>
                         <td className="align-middle border-end">
                           <FaTrash
@@ -2819,21 +2962,29 @@ function ApprovalBatchPage() {
                 className="btn btn-secondary mb-0"
                 style={{ backgroundColor: "#8000d7", border: "none" }}
               >
-                Upload File
+                Upload Remark File
               </Form.Label>
               <Form.Control
                 type="file"
                 id="fileUpload"
-                name="file"
+                name="remarkFile"
                 onChange={handleRemarkFileChange}
                 style={{ display: "none" }}
               />
-              {editValues.file && (
+              {editValues.remarkFile && (
                 <div
                   className="mt-2"
                   style={{ fontWeight: "bold", color: "green" }}
                 >
-                  Uploaded File: {editValues.file.name}
+                  Selected File: {editValues.remarkFile.name || editValues.remarkFile}
+                </div>
+              )}
+              {editingInvoice?.remarkFile && !editValues.remarkFile && (
+                <div
+                  className="mt-2"
+                  style={{ fontWeight: "bold", color: "green" }}
+                >
+                  Existing File: <a href={editingInvoice.remarkFile} target="_blank" rel="noopener noreferrer">View Current File</a>
                 </div>
               )}
             </Form.Group>

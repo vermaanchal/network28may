@@ -19,11 +19,11 @@ import { saveAs } from "file-saver";
 
 const BASE_URL = "https://mintflix.live:8086/api/Auto";
 
-const ReviewBatchPage = () => {
+const QueryCasePage = () => {
   const navigate = useNavigate();
   const { state } = useLocation();
-  const { selectedBatchData, vendorId, isExcelUpload } = state || {};
-  console.log("hello this is data ", selectedBatchData);
+  const { invoice, vendorId, isExcelUpload } = state || {};
+  console.log("hello this is data ", invoice);
   const fileInputRef = useRef();
   const modalFileInputRef = useRef();
   const [invoices, setInvoices] = useState([]);
@@ -97,25 +97,25 @@ const ReviewBatchPage = () => {
   };
 
   useEffect(() => {
-    console.log("Selected Batch Data:", selectedBatchData);
-    if (!selectedBatchData) {
+    console.log("Selected Batch Data:", invoice);
+    if (!invoice) {
       navigate("/");
       return;
     }
-    setInvoiceNo(selectedBatchData.invoiceNo || "");
-    setInvoiceDate(selectedBatchData.invoiceDate || "");
+    setInvoiceNo(invoice.invoiceNo || "");
+    setInvoiceDate(invoice.invoiceDate || "");
     setInvoiceAmount(
-      selectedBatchData.invoiceAmount
-        ? selectedBatchData.invoiceAmount.toString()
+      invoice.invoiceAmount
+        ? invoice.invoiceAmount.toString()
         : ""
     );
     setCaseCount(
-      selectedBatchData.caseCount ? selectedBatchData.caseCount.toString() : ""
+      invoice.caseCount ? invoice.caseCount.toString() : ""
     );
 
     setIsLoading(true);
-    if (selectedBatchData.aaNo) {
-      const aaNumbers = selectedBatchData.aaNo
+    if (invoice.aaNo) {
+      const aaNumbers = invoice.aaNo
         .split(",")
         .map((val) => val.trim());
 
@@ -157,19 +157,19 @@ const ReviewBatchPage = () => {
     } else {
       setIsLoading(false);
     }
-  }, [selectedBatchData, navigate]);
+  }, [invoice, navigate]);
 
   useEffect(() => {
-    if (!selectedBatchData) return;
+    if (!invoice) return;
     const splitData = (key) =>
-      selectedBatchData[key]?.split(",").map((val) => val.trim()) || [];
+      invoice[key]?.split(",").map((val) => val.trim()) || [];
     const invoicesArray = splitData("aaNo").map((_, i) => {
       const remarkFileUrl = splitData("remarkFile")[i];
       return {
         aA_Number: splitData("aaNo")[i],
         imeiNumber: splitData("imeiNo")[i],
-        creationDate: selectedBatchData.creationDate || "",
-        closureDate: selectedBatchData.closureDate || "",
+        creationDate: invoice.creationDate || "",
+        closureDate: invoice.closureDate || "",
         customerName: splitData("customerName")[i],
         serviceType: splitData("serviceType")[i],
         brand: splitData("brand")[i],
@@ -183,9 +183,9 @@ const ReviewBatchPage = () => {
         total: splitData("total")[i]
           ? parseFloat(splitData("total")[i]).toFixed(2)
           : "0.00",
-        invoiceStatus: selectedBatchData.invoiceStatus || "-",
+        invoiceStatus: invoice.invoiceStatus || "-",
         sellingPartner: splitData("sellingPartner")[i],
-        batchNo: selectedBatchData.batchNo || "",
+        batchNo: invoice.batchNo || "",
         isChecked: true,
         remarks: splitData("remarks")[i] || "",
         remarkFile: remarkFileUrl
@@ -194,7 +194,7 @@ const ReviewBatchPage = () => {
       };
     });
     setInvoices(invoicesArray);
-  }, [selectedBatchData]);
+  }, [invoice]);
 
   const normalize = (value) =>
     (value ? value.toString().trim() : "").toLowerCase();
@@ -317,22 +317,22 @@ const ReviewBatchPage = () => {
         header: true,
         complete: (results) => {
           const row = results.data[0];
-          setInvoiceNo(row["Invoice No"] || selectedBatchData.invoiceNo || "");
+          setInvoiceNo(row["Invoice No"] || invoice.invoiceNo || "");
           setInvoiceDate(
-            row["Invoice Date"] || selectedBatchData.invoiceDate || ""
+            row["Invoice Date"] || invoice.invoiceDate || ""
           );
           setInvoiceAmount(
             row["Invoice Amount"]
               ? row["Invoice Amount"].toString()
-              : selectedBatchData.invoiceAmount
-              ? selectedBatchData.invoiceAmount.toString()
+              : invoice.invoiceAmount
+              ? invoice.invoiceAmount.toString()
               : ""
           );
           setCaseCount(
             row["Case Count"]
               ? row["Case Count"].toString()
-              : selectedBatchData.caseCount
-              ? selectedBatchData.caseCount.toString()
+              : invoice.caseCount
+              ? invoice.caseCount.toString()
               : ""
           );
         },
@@ -520,11 +520,11 @@ const ReviewBatchPage = () => {
       formData.append("ClosureDate", extract("closureDate"));
       formData.append("CustomerName", extract("customerName"));
       formData.append("Remarks", extract("remarks"));
-      formData.append("VendorName", selectedBatchData?.vendorName || "");
+      formData.append("VendorName", invoice?.vendorName || "");
       formData.append("finalAmount", finalAmount);
       formData.append("TotalRepairCharges", totalRepairCharges.toFixed(2));
       formData.append("TotalServiceCharges", totalServiceCharges.toFixed(2));
-      formData.append("BatchNo", selectedBatchData?.batchNo || "");
+      formData.append("BatchNo", invoice?.batchNo || "");
       formData.append("ServiceType", extract("serviceType"));
       formData.append("Brand", extract("brand"));
       formData.append("MakeModel", extract("makeModel"));
@@ -759,19 +759,19 @@ const ReviewBatchPage = () => {
         <div className="netwrok_table_main_content">
           <div className="d-flex justify-content-between align-items-center gap-2 mb-3">
             <div className="d-flex flex-wrap gap-2 align-items-center">
-              {selectedBatchData?.batchNo && (
+              {invoice?.batchNo && (
                 <div className="fw-semibold">
                   <span>Batch No: </span>
                   <span className="text-primary">
-                    {selectedBatchData.batchNo}
+                    {invoice.batchNo}
                   </span>
                 </div>
               )}
-              {selectedBatchData?.vendorName && (
+              {invoice?.vendorName && (
                 <div className="fw-semibold">
                   <span>Vendor: </span>
                   <span className="text-success">
-                    {selectedBatchData.vendorName}
+                    {invoice.vendorName}
                   </span>
                 </div>
               )}
@@ -1472,4 +1472,4 @@ const ReviewBatchPage = () => {
   );
 };
 
-export default ReviewBatchPage;
+export default QueryCasePage

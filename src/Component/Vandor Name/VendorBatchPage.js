@@ -15,13 +15,9 @@ const VendorBatchPage = () => {
   const fileInputRef = useRef();
   const modalFileInputRef = useRef();
 
-  const {
-    selectedInvoices = [],
-    vendorName = "",
-    vendorId = "",
-    isExcelUpload = false,
-  } = location.state || {};
+  const { selectedInvoices = [], vendorName = "" } = location.state || {};
 
+  console.log("Selected Invoices:", selectedInvoices);
   // State declarations
   const [invoices, setInvoices] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -1277,7 +1273,7 @@ const VendorBatchPage = () => {
                 </div>
               )}
             </Form.Group>
-            <Form.Group className="mb-3" controlId="formFile">
+            {/* <Form.Group className="mb-3" controlId="formFile">
               <Form.Label
                 htmlFor="fileUpload"
                 className="btn btn-secondary mb-0"
@@ -1295,6 +1291,32 @@ const VendorBatchPage = () => {
                 ref={modalFileInputRef}
                 accept="*"
               />
+              {editedCharges.fileName && (
+                <div className="mt-2 text-muted">
+                  Selected File: {editedCharges.fileName}
+                </div>
+              )}
+            </Form.Group> */}
+
+            <Form.Group className="mb-3" controlId="formFile">
+              <Form.Label
+                className="btn btn-secondary mb-0"
+                style={{ backgroundColor: "#8000d7", border: "none" }}
+                onClick={() => modalFileInputRef.current.click()}
+              >
+                Upload File
+              </Form.Label>
+
+              <Form.Control
+                type="file"
+                id="fileUpload"
+                name="file"
+                onChange={handleModalFileChange}
+                style={{ display: "none" }}
+                ref={modalFileInputRef}
+                accept="*"
+              />
+
               {editedCharges.fileName && (
                 <div className="mt-2 text-muted">
                   Selected File: {editedCharges.fileName}

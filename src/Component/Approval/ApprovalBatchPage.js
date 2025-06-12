@@ -1987,7 +1987,7 @@ function ApprovalBatchPage() {
       toast.success("Invoice updated successfully.");
     } catch (error) {
       console.error("Error updating invoice:", error);
-      toast.error("Error updating invoice. Please check console for details.");
+      // toast.error("Error updating invoice. Please check console for details.");
     }
 
     handleCloseModal();
@@ -2894,7 +2894,7 @@ function ApprovalBatchPage() {
                 }}
                 disabled={loading}
               >
-                <span>{loading ? "Submitting..." : "Partial Approve"}</span>
+                <span>{loading ? "Submitting..." : "Partial Or Back"}</span>
               </Button>
             </div>
           </div>

@@ -34,6 +34,7 @@ function PartialApproval() {
       try {
         const response = await fetch(`${BASE_URL}/GetAllBackPartialData`);
         const result = await response.json();
+        console.log("API Response:", result); // Log the entire response for debugging
         if (result.status) {
           const sendpartialData = result.data.filter(
             (item) => item.type === "Send Partial"

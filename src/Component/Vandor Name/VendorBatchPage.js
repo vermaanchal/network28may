@@ -33,6 +33,7 @@ const VendorBatchPage = () => {
   const [invoiceAmount, setInvoiceAmount] = useState("");
   const [amountError, setAmountError] = useState("");
   const [hoveredRow, setHoveredRow] = useState(null);
+  const [showPreview, setShowPreview] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({
     invoiceNo: false,
     invoiceDate: false,
@@ -1273,15 +1274,16 @@ const VendorBatchPage = () => {
                 </div>
               )}
             </Form.Group>
+
             {/* <Form.Group className="mb-3" controlId="formFile">
               <Form.Label
-                htmlFor="fileUpload"
                 className="btn btn-secondary mb-0"
                 style={{ backgroundColor: "#8000d7", border: "none" }}
                 onClick={() => modalFileInputRef.current.click()}
               >
                 Upload File
               </Form.Label>
+
               <Form.Control
                 type="file"
                 id="fileUpload"
@@ -1291,13 +1293,13 @@ const VendorBatchPage = () => {
                 ref={modalFileInputRef}
                 accept="*"
               />
+
               {editedCharges.fileName && (
                 <div className="mt-2 text-muted">
                   Selected File: {editedCharges.fileName}
                 </div>
               )}
             </Form.Group> */}
-
             <Form.Group className="mb-3" controlId="formFile">
               <Form.Label
                 className="btn btn-secondary mb-0"
@@ -1314,14 +1316,57 @@ const VendorBatchPage = () => {
                 onChange={handleModalFileChange}
                 style={{ display: "none" }}
                 ref={modalFileInputRef}
-                accept="*"
+                accept="application/pdf"
               />
 
               {editedCharges.fileName && (
-                <div className="mt-2 text-muted">
-                  Selected File: {editedCharges.fileName}
+                <div className="mt-2 d-flex align-items-center">
+                  <span className="text-muted me-2">
+                    Selected File: {editedCharges.fileName}
+                  </span>
+                  {editedCharges.file &&
+                    editedCharges.file.type === "application/pdf" && (
+                      <Button
+                        variant="link"
+                        className="p-0 ms-2"
+                        onClick={() => setShowPreview(!showPreview)}
+                        style={{ fontSize: "14px", color: "#8000d7" }}
+                      >
+                        <FaEye className="me-1" />{" "}
+                        {showPreview ? "Hide Preview" : "Show Preview"}
+                      </Button>
+                    )}
                 </div>
               )}
+
+              {showPreview &&
+                editedCharges.file &&
+                editedCharges.file.type === "application/pdf" && (
+                  <div
+                    className="mt-3"
+                    style={{
+                      border: "1px solid #ddd",
+                      borderRadius: "4px",
+                      overflow: "hidden",
+                    }}
+                  >
+                    <iframe
+                      src={URL.createObjectURL(editedCharges.file)}
+                      style={{ width: "100%", height: "400px", border: "none" }}
+                      title="PDF Preview"
+                      onLoad={() => {
+                        // Revoke URL after iframe loads to free memory (optional)
+                        setTimeout(
+                          () =>
+                            URL.revokeObjectURL(
+                              URL.createObjectURL(editedCharges.file)
+                            ),
+                          10000
+                        );
+                      }}
+                    />
+                  </div>
+                )}
             </Form.Group>
           </Form>
         </Modal.Body>

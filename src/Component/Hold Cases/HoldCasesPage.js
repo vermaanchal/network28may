@@ -804,7 +804,6 @@ const HoldCasesPage = () => {
               />
             </div>
           </div>
-
           {fileType && (
             <div className="text-end upload_file_ext_name mb-3">
               <span className="fw-bold text-success">

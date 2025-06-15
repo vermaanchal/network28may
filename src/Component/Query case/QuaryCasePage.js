@@ -77,12 +77,18 @@ const QueryCasePage = () => {
   }, 0);
 
   const grossAmount = totalServiceCharges + totalRepairCharges;
-  const gstAmount = isGSTApplied
-    ? (grossAmount * 0.18).toFixed(2)
-    : (0).toFixed(2);
-  const finalAmount = isGSTApplied
-    ? (grossAmount * 1.18).toFixed(2)
-    : grossAmount.toFixed(2);
+  // Calculate total GST only on the service charges (18%)
+const gstAmount = isGSTApplied
+  ? (totalServiceCharges * 0.18).toFixed(2) // GST = 18% of service charges
+  : (0).toFixed(2); // No GST if not applied
+
+// Calculate final amount: repair charges + service charges + GST on service only
+const finalAmount = (
+  totalRepairCharges + // without GST
+  totalServiceCharges + // without GST
+  parseFloat(gstAmount) // GST only on service
+).toFixed(2);
+
 
   const handleNext = () => {
     if (currentPage < totalPages) {

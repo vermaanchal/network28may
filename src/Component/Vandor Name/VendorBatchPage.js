@@ -6,6 +6,8 @@ import { FaEye, FaDownload, FaTrash, FaUpload, FaEdit } from "react-icons/fa";
 import Papa from "papaparse";
 import { useNavigate, useLocation } from "react-router-dom";
 import { saveAs } from "file-saver";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 const BASE_URL = "https://mintflix.live:8086/api/Auto";
 
@@ -117,11 +119,13 @@ const VendorBatchPage = () => {
   }, 0);
 
   const grossAmount = totalRepairCharges + totalServiceCharges;
+
   const gstAmount = isGSTApplied
-    ? (grossAmount * 0.18).toFixed(2)
+    ? (totalServiceCharges * 0.18).toFixed(2)
     : (0).toFixed(2);
+
   const finalAmount = isGSTApplied
-    ? (grossAmount * 1.18).toFixed(2)
+    ? (grossAmount + parseFloat(gstAmount)).toFixed(2)
     : grossAmount.toFixed(2);
 
   // Pagination handlers
@@ -1118,6 +1122,7 @@ const VendorBatchPage = () => {
                     </div>
                   )}
                 </div>
+
                 <div className="col-md-4 align-items-center mb-3">
                   <label className="me-2 fw-semibold w-50">
                     Invoice Amount
@@ -1160,6 +1165,7 @@ const VendorBatchPage = () => {
                     min="0"
                     step="0.01"
                   />
+
                   {fieldErrors.invoiceAmount && (
                     <div
                       className="text-danger mt-2"

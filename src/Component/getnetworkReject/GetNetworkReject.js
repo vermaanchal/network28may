@@ -346,8 +346,8 @@ function GetNetworkReject() {
                         <FaEye
                           className="text-purple review_fa_eye"
                           onClick={() => {
-                            navigate("/approvalBatchPage", {
-                              state: { batchData: invoice },
+                            navigate("/networkRejectPage", {
+                              state: { invoice: invoice },
                             });
                           }}
                         />

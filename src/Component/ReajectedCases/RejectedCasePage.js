@@ -64,25 +64,47 @@ const RejectedCasePage = () => {
   const currentInvoices = invoices.slice(indexOfFirstItem, indexOfLastItem);
   const selectedAAno = invoices.filter((invoice) => invoice.isChecked);
 
-  const totalRepairCharges = currentInvoices.reduce((total, invoice) => {
-    const cleanedAmount = invoice.repairCharges?.toString().replace(/,/g, "");
-    const amount = parseFloat(cleanedAmount);
-    return total + (isNaN(amount) ? 0 : amount);
-  }, 0);
+  // const totalRepairCharges = currentInvoices.reduce((total, invoice) => {
+  //   const cleanedAmount = invoice.repairCharges?.toString().replace(/,/g, "");
+  //   const amount = parseFloat(cleanedAmount);
+  //   return total + (isNaN(amount) ? 0 : amount);
+  // }, 0);
 
-  const totalServiceCharges = currentInvoices.reduce((total, invoice) => {
-    const cleanedAmount = invoice.serviceCharges?.toString().replace(/,/g, "");
-    const amount = parseFloat(cleanedAmount);
-    return total + (isNaN(amount) ? 0 : amount);
-  }, 0);
+  // const totalServiceCharges = currentInvoices.reduce((total, invoice) => {
+  //   const cleanedAmount = invoice.serviceCharges?.toString().replace(/,/g, "");
+  //   const amount = parseFloat(cleanedAmount);
+  //   return total + (isNaN(amount) ? 0 : amount);
+  // }, 0);
+const totalRepairCharges = invoices.reduce(
+  (acc, curr) => acc + parseFloat(curr.repairCharges || 0),
+  0
+);
+
+const totalServiceCharges = invoices.reduce(
+  (acc, curr) => acc + parseFloat(curr.serviceCharges || 0),
+  0
+);
 
   const grossAmount = totalServiceCharges + totalRepairCharges;
-  const gstAmount = isGSTApplied
-    ? (grossAmount * 0.18).toFixed(2)
-    : (0).toFixed(2);
-  const finalAmount = isGSTApplied
-    ? (grossAmount * 1.18).toFixed(2)
-    : grossAmount.toFixed(2);
+  // const gstAmount = isGSTApplied
+  //   ? (grossAmount * 0.18).toFixed(2)
+  //   : (0).toFixed(2);
+  // const finalAmount = isGSTApplied
+  //   ? (grossAmount * 1.18).toFixed(2)
+  //   : grossAmount.toFixed(2);
+
+
+
+const gstAmount = isGSTApplied
+  ? (totalServiceCharges * 0.18).toFixed(2)
+  : (0).toFixed(2);
+
+const finalAmount = (
+  totalRepairCharges +
+  totalServiceCharges +
+  parseFloat(gstAmount)
+).toFixed(2);
+
 
   const handleNext = () => {
     if (currentPage < totalPages) {

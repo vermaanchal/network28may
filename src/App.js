@@ -37,6 +37,7 @@ import Reajectedcases from "./Component/ReajectedCases/Reajectedcases";
 import QueryCases from "./Component/Query case/QueryCases";
 import QueryCasePage from "./Component/Query case/QuaryCasePage";
 import HoldCasesPage from "./Component/Hold Cases/HoldCasesPage";
+import NetworkRejectPage from "./Component/getnetworkReject/NetworkRejectPage";
 
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -615,6 +616,32 @@ function App() {
                     }}
                   >
                     <GetNetworkReject />
+                  </Box>
+                </>
+              }
+              allowedRoles={["NetworkSubAdmin", "NetworkAdmin"]}
+            />
+          }
+        />
+        <Route
+          path="/networkRejectPage"
+          element={
+            <ProtectedRoute
+              element={
+                <>
+                  <Header open={sidebarOpen} toggleSidebar={toggleSidebar} />
+                  <Sidebar open={sidebarOpen} toggleSidebar={toggleSidebar} />
+                  <Box
+                    component="main"
+                    sx={{
+                      flexGrow: 1,
+                      marginLeft: sidebarOpen && !isMobile ? "0px" : 0,
+                      width: "100%",
+                      marginTop: "64px",
+                      transition: "margin 0.3s ease-in-out",
+                    }}
+                  >
+                    <NetworkRejectPage />
                   </Box>
                 </>
               }

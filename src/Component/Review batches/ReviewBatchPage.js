@@ -75,14 +75,6 @@ const ReviewBatchPage = () => {
     return total + (isNaN(amount) ? 0 : amount);
   }, 0);
 
-  // const grossAmount = totalServiceCharges + totalRepairCharges;
-  // const gstAmount = isGSTApplied
-  //   ? (grossAmount * 0.18).toFixed(2)
-  //   : (0).toFixed(2);
-  // const finalAmount = isGSTApplied
-  //   ? (grossAmount * 1.18).toFixed(2)
-  //   : grossAmount.toFixed(2);
-
 const grossAmount = totalServiceCharges + totalRepairCharges;
 
 const gstAmount = isGSTApplied
@@ -637,9 +629,12 @@ const finalAmount = (
     setShowEditModal(true);
   };
 
+
+
+  
+
   const handleSaveEdit = () => {
     if (!editingInvoice) return;
-
     const parsedServiceCharges = parseFloat(editValues.serviceCharges);
     const parsedRepairCharges = parseFloat(editValues.repairCharges);
     const remarks = editValues.remarks?.trim() || "";

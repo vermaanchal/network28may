@@ -176,82 +176,192 @@ const VendorBatchPage = () => {
     }
   }, [currentInvoices, previousInvoices]);
 
+
+
   const normalize = (value) =>
-    (value ? value.toString().trim() : "").toLowerCase();
+  (value ? value.toString().trim() : "").toLowerCase();
 
-  const getRowClassName = useCallback(
-    (invoice) => {
-      if (!Array.isArray(apiData) || apiData.length === 0) return "row-red";
+  // const normalize = (value) =>
+  //   (value ? value.toString().trim() : "").toLowerCase();
 
-      const matchedData = apiData.find(
-        (item) => item.aA_Number === invoice.aA_Number
-      );
-      if (!matchedData) return "row-red";
+  // const getRowClassName = useCallback(
+  //   (invoice) => {
+  //     if (!Array.isArray(apiData) || apiData.length === 0) return "row-red";
 
-      if (
-        normalize(matchedData.serviceType) !== normalize(invoice.serviceType) ||
-        normalize(matchedData.repairCharges) !==
-          normalize(invoice.repairCharges) ||
-        normalize(matchedData.serviceCharges) !==
-          normalize(invoice.serviceCharges) ||
-        normalize(matchedData.total) !== normalize(invoice.total)
-      ) {
-        return "row-yellow";
-      }
+  //     const matchedData = apiData.find(
+  //       (item) => item.aA_Number === invoice.aA_Number
+  //     );
+  //     if (!matchedData) return "row-red";
 
-      return "row-green";
-    },
-    [apiData]
-  );
+  //     if (
+  //       normalize(matchedData.serviceType) !== normalize(invoice.serviceType) ||
+  //       normalize(matchedData.repairCharges) !==
+  //         normalize(invoice.repairCharges) ||
+  //       normalize(matchedData.serviceCharges) !==
+  //         normalize(invoice.serviceCharges) ||
+  //       normalize(matchedData.total) !== normalize(invoice.total)
+  //     ) {
+  //       return "row-yellow";
+  //     }
 
-  const getDifferencesData = (invoice) => {
+  //     return "row-green";
+  //   },
+  //   [apiData]
+  // );
+
+
+
+const getRowClassName = useCallback(
+  (invoice) => {
+    // If apiData is empty or not an array, mark row as red
+    if (!Array.isArray(apiData) || apiData.length === 0) {
+      return "row-red";
+    }
+
+    // Find matching API data by aA_Number
     const matchedData = apiData.find(
       (item) => item.aA_Number === invoice.aA_Number
     );
-    if (!matchedData)
-      return [
-        { field: "AA Number", table: invoice.aA_Number, api: "Not Found" },
-      ];
 
-    const differences = [];
-
-    if (normalize(matchedData.serviceType) !== normalize(invoice.serviceType)) {
-      differences.push({
-        field: "Service Type",
-        table: invoice.serviceType || "-",
-        api: matchedData.serviceType || "-",
-      });
+    // If no matching aA_Number is found, mark row as red
+    if (!matchedData) {
+      return "row-red";
     }
+
+    // Compare fields for yellow row condition
+    const isServiceTypeMismatch =
+      normalize(matchedData.serviceType) !== normalize(invoice.serviceType);
+    const isRepairChargesMismatch =
+      parseFloat(matchedData.repairCharges || 0).toFixed(2) !==
+      parseFloat(invoice.repairCharges || 0).toFixed(2);
+    const isServiceChargesMismatch =
+      parseFloat(matchedData.serviceCharges || 0).toFixed(2) !==
+      parseFloat(invoice.serviceCharges || 0).toFixed(2);
+    const isSellingPartnerMismatch =
+      normalize(matchedData.sellingPartner || "") !==
+      normalize(invoice.sellingPartner || "");
+
+    // If any of the fields mismatch, mark row as yellow
     if (
-      normalize(matchedData.repairCharges) !== normalize(invoice.repairCharges)
+      isServiceTypeMismatch ||
+      isRepairChargesMismatch ||
+      isServiceChargesMismatch ||
+      isSellingPartnerMismatch
     ) {
-      differences.push({
-        field: "Repair Charges",
-        table: invoice.repairCharges || "-",
-        api: matchedData.repairCharges || "-",
-      });
-    }
-    if (
-      normalize(matchedData.serviceCharges) !==
-      normalize(invoice.serviceCharges)
-    ) {
-      differences.push({
-        field: "Service Charges",
-        table: invoice.serviceCharges || "-",
-        api: matchedData.serviceCharges || "-",
-      });
-    }
-    if (normalize(matchedData.total) !== normalize(invoice.total)) {
-      differences.push({
-        field: "Total",
-        table: invoice.total || "-",
-        api: matchedData.total || "-",
-      });
+      return "row-yellow";
     }
 
-    return differences.length > 0 ? differences : [];
-  };
+    // If all fields match, mark row as green
+    return "row-green";
+  },
+  [apiData]
+);
 
+
+
+
+  // const getDifferencesData = (invoice) => {
+  //   const matchedData = apiData.find(
+  //     (item) => item.aA_Number === invoice.aA_Number
+  //   );
+  //   if (!matchedData)
+  //     return [
+  //       { field: "AA Number", table: invoice.aA_Number, api: "Not Found" },
+  //     ];
+
+  //   const differences = [];
+
+  //   if (normalize(matchedData.serviceType) !== normalize(invoice.serviceType)) {
+  //     differences.push({
+  //       field: "Service Type",
+  //       table: invoice.serviceType || "-",
+  //       api: matchedData.serviceType || "-",
+  //     });
+  //   }
+  //   if (
+  //     normalize(matchedData.repairCharges) !== normalize(invoice.repairCharges)
+  //   ) {
+  //     differences.push({
+  //       field: "Repair Charges",
+  //       table: invoice.repairCharges || "-",
+  //       api: matchedData.repairCharges || "-",
+  //     });
+  //   }
+  //   if (
+  //     normalize(matchedData.serviceCharges) !==
+  //     normalize(invoice.serviceCharges)
+  //   ) {
+  //     differences.push({
+  //       field: "Service Charges",
+  //       table: invoice.serviceCharges || "-",
+  //       api: matchedData.serviceCharges || "-",
+  //     });
+  //   }
+  //   if (normalize(matchedData.total) !== normalize(invoice.total)) {
+  //     differences.push({
+  //       field: "Total",
+  //       table: invoice.total || "-",
+  //       api: matchedData.total || "-",
+  //     });
+  //   }
+
+  //   return differences.length > 0 ? differences : [];
+  // };
+
+
+
+
+  const getDifferencesData = (invoice) => {
+  const matchedData = apiData.find(
+    (item) => item.aA_Number === invoice.aA_Number
+  );
+  if (!matchedData)
+    return [
+      { field: "AA Number", table: invoice.aA_Number, api: "Not Found" },
+    ];
+
+  const differences = [];
+
+  if (normalize(matchedData.serviceType) !== normalize(invoice.serviceType)) {
+    differences.push({
+      field: "Service Type",
+      table: invoice.serviceType || "-",
+      api: matchedData.serviceType || "-",
+    });
+  }
+  if (
+    parseFloat(matchedData.repairCharges || 0).toFixed(2) !==
+    parseFloat(invoice.repairCharges || 0).toFixed(2)
+  ) {
+    differences.push({
+      field: "Repair Charges",
+      table: invoice.repairCharges || "-",
+      api: matchedData.repairCharges || "-",
+    });
+  }
+  if (
+    parseFloat(matchedData.serviceCharges || 0).toFixed(2) !==
+    parseFloat(invoice.serviceCharges || 0).toFixed(2)
+  ) {
+    differences.push({
+      field: "Service Charges",
+      table: invoice.serviceCharges || "-",
+      api: matchedData.serviceCharges || "-",
+    });
+  }
+  if (
+    normalize(matchedData.sellingPartner || "") !==
+    normalize(invoice.sellingPartner || "")
+  ) {
+    differences.push({
+      field: "Selling Partner",
+      table: invoice.sellingPartner || "-",
+      api: matchedData.sellingPartner || "-",
+    });
+  }
+
+  return differences.length > 0 ? differences : [];
+};
   const handleCheckboxChange = (invoiceId) => {
     setInvoices((prev) =>
       prev.map((invoice) =>

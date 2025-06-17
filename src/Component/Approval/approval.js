@@ -392,16 +392,7 @@ function Approval() {
                         {invoice.totalServiceCharges || "--"}
                       </td>
                       <td className="align-middle">
-                        {/* {invoice.total
-                          ? `${invoice.total
-                              .split(",")
-                              .map((val) => parseFloat(val.trim()))
-                              .reduce(
-                                (acc, num) => acc + (isNaN(num) ? 0 : num),
-                                0
-                              )
-                              .toLocaleString()}`
-                          : "--"} */}
+                       
                            {invoice.finalAmount || "--"}
                       </td>
                       <td

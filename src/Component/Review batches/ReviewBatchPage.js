@@ -75,19 +75,17 @@ const ReviewBatchPage = () => {
     return total + (isNaN(amount) ? 0 : amount);
   }, 0);
 
-const grossAmount = totalServiceCharges + totalRepairCharges;
+  const grossAmount = totalServiceCharges + totalRepairCharges;
 
-const gstAmount = isGSTApplied
-  ? (totalServiceCharges * 0.18).toFixed(2)
-  : (0).toFixed(2);
+  const gstAmount = isGSTApplied
+    ? (totalServiceCharges * 0.18).toFixed(2)
+    : (0).toFixed(2);
 
-const finalAmount = (
-  totalRepairCharges +
-  totalServiceCharges +
-  parseFloat(gstAmount)
-).toFixed(2);
-
-
+  const finalAmount = (
+    totalRepairCharges +
+    totalServiceCharges +
+    parseFloat(gstAmount)
+  ).toFixed(2);
 
   // Helper function to format date to YYYY-MM-DD
   const formatDate = (dateString) => {
@@ -145,6 +143,7 @@ const finalAmount = (
               return response.json();
             })
             .then((responseData) => {
+              console.log(`Response data for ${aaNo}:`, responseData);
               if (!responseData || !responseData.dataItems) {
                 return [];
               }
@@ -211,9 +210,9 @@ const finalAmount = (
 
   const normalize = (value) =>
     (value ? value.toString().trim() : "").toLowerCase();
-
   const getRowClassName = useCallback(
     (invoice) => {
+      console.log("API Data:", invoice);
       if (!Array.isArray(apiData)) return "row-red";
       const matchedData = apiData.find(
         (item) => item && item.aA_Number === invoice.aA_Number
@@ -235,7 +234,7 @@ const finalAmount = (
     },
     [apiData]
   );
-
+  
   const getDifferencesData = (invoice) => {
     const matchedData = apiData.find(
       (item) => item && item.aA_Number === invoice.aA_Number
@@ -629,11 +628,7 @@ const finalAmount = (
     setShowEditModal(true);
   };
 
-
-
-  
-
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (!editingInvoice) return;
     const parsedServiceCharges = parseFloat(editValues.serviceCharges);
     const parsedRepairCharges = parseFloat(editValues.repairCharges);
@@ -667,6 +662,7 @@ const finalAmount = (
       2
     );
 
+    // Update local state
     setInvoices((prevInvoices) =>
       prevInvoices.map((invoice) =>
         invoice.aA_Number === editingInvoice.aA_Number
@@ -689,6 +685,33 @@ const finalAmount = (
       ...prev,
       remarks: { ...prev.remarks, [editingInvoice.aA_Number]: false },
     }));
+
+    // Call upadtecClaimRemarks API
+    try {
+      const formData = new FormData();
+      formData.append("AANo", editingInvoice.aA_Number);
+      formData.append("Remark", remarks);
+      if (editValues.file instanceof File) {
+        formData.append("RemarkFile", editValues.file, editValues.file.name);
+      } else {
+        formData.append("RemarkFile", null);
+      }
+
+      const response = await fetch(`${BASE_URL}/UpdateClaimRemarks`, {
+        method: "POST",
+        body: formData,
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.message || "Failed to update claim remarks.");
+      }
+      toast.success("Claim remarks updated successfully.");
+    } catch (error) {
+      console.error("Error updating claim remarks:", error);
+      toast.error(`Failed to update claim remarks: ${error.message}`);
+    }
+
+    // Reset modal and state
     setShowEditModal(false);
     setEditingInvoice(null);
     setEditValues({

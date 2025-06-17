@@ -7,6 +7,7 @@ import { saveAs } from "file-saver";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { updateInvoiceStatusNetworkForApproved } from "../../api/api";
+import { IconButton } from "@mui/material";
 
 const BASE_URL = "https://mintflix.live:8086/api/Auto";
 
@@ -239,21 +240,21 @@ function ApprovalBatchPage() {
       (item) => item.aA_Number === invoice.aA_Number
     );
     if (!matchedData || matchedData.status === false)
-      return [{ field: "AA Number", table: invoice.aA_Number, api: "-" }];
+      return [{ field: "AA Number", table: invoice.aA_Number, api: "" }];
     const dataItem = matchedData.dataItems[0] || {};
     const differences = [];
     if (normalize(dataItem.serviceType) !== normalize(invoice.serviceType)) {
       differences.push({
         field: "Service Type",
-        table: invoice.serviceType || "-",
-        api: dataItem.serviceType || "-",
+        table: invoice.serviceType || "",
+        api: dataItem.serviceType || "",
       });
     }
     if (normalize(dataItem.imeiNumber) !== normalize(invoice.imeiNumber)) {
       differences.push({
         field: "IMEI Number",
-        table: invoice.imeiNumber || "-",
-        api: dataItem.imeiNumber || "-",
+        table: invoice.imeiNumber || "",
+        api: dataItem.imeiNumber || "",
       });
     }
     if (
@@ -261,8 +262,8 @@ function ApprovalBatchPage() {
     ) {
       differences.push({
         field: "Selling Partner",
-        table: invoice.sellingPartner || "-",
-        api: dataItem.sellingPartner || "-",
+        table: invoice.sellingPartner || "",
+        api: dataItem.sellingPartner || "",
       });
     }
     if (
@@ -270,8 +271,8 @@ function ApprovalBatchPage() {
     ) {
       differences.push({
         field: "Repair Charges",
-        table: invoice.repairCharges || "-",
-        api: dataItem.repairCharges || "-",
+        table: invoice.repairCharges || "",
+        api: dataItem.repairCharges || "",
       });
     }
     if (
@@ -279,8 +280,8 @@ function ApprovalBatchPage() {
     ) {
       differences.push({
         field: "Service Charges",
-        table: invoice.serviceCharges || "-",
-        api: dataItem.serviceCharges || "-",
+        table: invoice.serviceCharges || "",
+        api: dataItem.serviceCharges || "",
       });
     }
     if (
@@ -288,15 +289,15 @@ function ApprovalBatchPage() {
     ) {
       differences.push({
         field: "GST Charges",
-        table: invoice.chargesInclGST || "-",
-        api: dataItem.chargesInclGST || "-",
+        table: invoice.chargesInclGST || "",
+        api: dataItem.chargesInclGST || "",
       });
     }
     if (normalize(dataItem.total) !== normalize(invoice.total)) {
       differences.push({
         field: "Total Amount",
-        table: invoice.total || "-",
-        api: dataItem.total || "-",
+        table: invoice.total || "",
+        api: dataItem.total || "",
       });
     }
     return differences.length > 0 ? differences : [];
@@ -1050,19 +1051,22 @@ function ApprovalBatchPage() {
                           />
                         </td>
                         <td className="align-middle">
-                          <FaEye
-                            size={20}
-                            className="text-purple review_fa_eye"
-                            style={{ cursor: "pointer" }}
-                            onClick={() =>
+                        <IconButton   onClick={() =>
                               navigate("/invoice-template", {
                                 state: {
                                   aaNumber: invoice.aA_Number,
                                   invoiceData: invoice,
                                 },
                               })
-                            }
+                            }>
+
+                          <FaEye
+                            size={20}
+                            className="text-purple review_fa_eye"
+                            style={{ cursor: "pointer" }}
+                          
                           />
+                        </IconButton>
                         </td>
                         <td className="align-middle">
                           <FaEdit

@@ -339,7 +339,7 @@ function PartialApproval() {
                   <th style={{ whiteSpace: "nowrap" }}>Total</th>
                   <th style={{ whiteSpace: "nowrap" }}>Remarks</th>
                   <th>Invoice</th>
-                  <th style={{ whiteSpace: "nowrap" }}>Invoice Status</th>
+              
                 </tr>
               </thead>
               <tbody>
@@ -350,15 +350,15 @@ function PartialApproval() {
                       className="text-center border-bottom network_td_item"
                     >
                       <td className="border-start align-middle cursor-pointer">
-                        <IconButton>
-                          <FaEye
-                            size={20}
-                            className="text-purple review_fa_eye"
-                            onClick={() => {
+                        <IconButton  onClick={() => {
                               navigate("/partialDetailPage", {
                                 state: { batchData: invoice },
                               });
-                            }}
+                            }}>
+                          <FaEye
+                            size={20}
+                            className="text-purple review_fa_eye"
+                           
                           />
                         </IconButton>
                       </td>
@@ -416,41 +416,7 @@ function PartialApproval() {
                           "--"
                         )}
                       </td>
-                      <td className="align-middle">
-                        {invoice.invoiceStatus !== "Approved" ? (
-                          <Dropdown className="network_table_main">
-                            <Dropdown.Toggle
-                              className={`custom-dropdown-toggle network_table_approve ${getStatusBadgeClass(
-                                invoice.invoiceStatus
-                              )}`}
-                            >
-                              {invoice.invoiceStatus || "Batch"}{" "}
-                              <FaChevronDown className="dropdown-icon" />
-                            </Dropdown.Toggle>
-                            <Dropdown.Menu className="custom-dropdown-menu">
-                              {invoiceOptions.map((status) => (
-                                <Dropdown.Item
-                                  key={status}
-                                  onClick={() =>
-                                    handleInvoiceStatusChange(index, status)
-                                  }
-                                  className="custom-dropdown-item"
-                                >
-                                  {status}
-                                </Dropdown.Item>
-                              ))}
-                            </Dropdown.Menu>
-                          </Dropdown>
-                        ) : (
-                          <span
-                            className={`custom-dropdown-toggle network_table_approve ${getStatusBadgeClass(
-                              invoice.invoiceStatus
-                            )}`}
-                          >
-                            {invoice.invoiceStatus}
-                          </span>
-                        )}
-                      </td>
+                    
                     </tr>
                   ))
                 ) : (

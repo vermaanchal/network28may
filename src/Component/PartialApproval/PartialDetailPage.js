@@ -6,14 +6,14 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { saveAs } from "file-saver";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { updateInvoiceStatusNetworkForApproved } from "../../api/api";
+import { UpdateInvoicePartialNetwork } from "../../api/api";
 
 const BASE_URL = "https://mintflix.live:8086/api/Auto";
 
 function PartialDetailPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { batchData, batchNo, invoiceStatus } = location.state || {};
+  const { batchData, } = location.state || {};
   const fileInputRef = useRef();
   const [invoices, setInvoices] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -52,10 +52,9 @@ function PartialDetailPage() {
     remarkFile: null,
   });
 
-  console.log("Batch No:", batchNo);
-  console.log("Invoice Status:", invoiceStatus);
-  console.log("Full Data:", batchData);
-
+  // console.log("Batch No:", batchNo);
+  // console.log("Invoice Status:", invoiceStatus);
+  // console.log("Full Data:", batchData);
   const itemsPerPage = 8;
   const totalPages = Math.ceil(invoices.length / itemsPerPage);
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -103,6 +102,7 @@ const finalAmount = (
     setCaseCount(batchData.caseCount || "");
     setInvoiceNo(batchData.invoiceNo || "");
     setInvoiceDate(batchData.invoiceDate || "");
+  
     setInvoiceAmount(batchData.invoiceAmount || "");
     if (batchData.invoice) {
       const fileName = batchData.invoice.split("/").pop() || "invoice.pdf";
@@ -586,7 +586,7 @@ const finalAmount = (
 
     try {
       setLoading(true);
-      const statusResponse = await updateInvoiceStatusNetworkForApproved({
+      const statusResponse = await UpdateInvoicePartialNetwork({
         batchNo: batchData?.batchNo || "",
         invoiceStatus: "Approve",
       });
@@ -639,7 +639,7 @@ const finalAmount = (
     formData.append("sellingPartner", extract("sellingPartner") || "");
     formData.append("aaNo", extract("aA_Number") || "");
     formData.append("imeiNo", extract("imeiNumber") || "");
-    formData.append("creationDate", new Date().toISOString());
+    formData.append("creationDate", batchData.creationDate);
     formData.append("closureDate", "");
     formData.append("customerName", extract("customerName") || "");
     formData.append("serviceType", extract("serviceType") || "");
@@ -1252,29 +1252,29 @@ const finalAmount = (
                     <label className="me-2 fw-semibold w-50">
                       Invoice Date
                     </label>
-                    <input
-                      type="date"
-                      className={`form-control border-dark ${
-                        (uploadedFile || !existingInvoice.url) &&
-                        fieldErrors.invoiceDate
-                          ? "is-invalid"
-                          : ""
-                      }`}
-                      value={invoiceDate}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        setInvoiceDate(value);
-                        if (uploadedFile || !existingInvoice.url) {
-                          setFieldErrors((prev) => ({
-                            ...prev,
-                            invoiceDate:
-                              !value.trim() ||
-                              value > new Date().toISOString().split("T")[0],
-                          }));
-                        }
-                      }}
-                      max={new Date().toISOString().split("T")[0]}
-                    />
+                  <input
+  type="date"
+  className={`form-control border-dark ${
+    (uploadedFile || !existingInvoice.url) && fieldErrors.invoiceDate
+      ? "is-invalid"
+      : ""
+  }`}
+  value={invoiceDate ? invoiceDate.split("T")[0] : ""}
+  onChange={(e) => {
+    const value = e.target.value;
+    setInvoiceDate(value);
+    if (uploadedFile || !existingInvoice.url) {
+      setFieldErrors((prev) => ({
+        ...prev,
+        invoiceDate:
+          !value.trim() ||
+          value > new Date().toISOString().split("T")[0],
+      }));
+    }
+  }}
+  max={new Date().toISOString().split("T")[0]}
+/>
+
                     {(uploadedFile || !existingInvoice.url) &&
                       fieldErrors.invoiceDate && (
                         <div

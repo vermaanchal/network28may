@@ -78,13 +78,7 @@ const SendbackDetailPage = () => {
   const grossAmount = totalServiceCharges + totalRepairCharges;
 
 
-  // const gstAmount = isGSTApplied
-  //   ? (grossAmount * 0.18).toFixed(2)
-  //   : (0).toFixed(2);
-  // const finalAmount = isGSTApplied
-  //   ? (grossAmount * 1.18).toFixed(2)
-  //   : grossAmount.toFixed(2);
-
+  
 
   const gstAmount = isGSTApplied
   ? (totalServiceCharges * 0.18).toFixed(2)
